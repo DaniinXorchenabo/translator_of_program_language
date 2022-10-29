@@ -22,6 +22,7 @@ keywords = {
     "WRITE",
     "SWITCH",
     "END",
+    "PASS"
 }
 
 

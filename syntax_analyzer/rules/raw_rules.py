@@ -52,11 +52,15 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
         (uuid4(), NO_T.tV): [CHARS_ENUM],
     },
     tB_dict={
-        (uuid4(), NO_T.tB): [A.BEGIN, BL, NO_T.tBr, BL, A.END],
+        (uuid4(), NO_T.tB): [A.BEGIN, BL, NO_T.tBr, O_BL, A.END],
     },
     tBr_dict={
+        (uuid4(), NO_T.tBr): [A.PASS, O_BL, A(';')],
+        (uuid4(), NO_T.tBr): [NO_T.tA, O_BL, A(';')],
+        (uuid4(), NO_T.tBr): [NO_T.tR, O_BL, A(';')],
+        (uuid4(), NO_T.tBr): [NO_T.tW, O_BL, A(';')],
+        (uuid4(), NO_T.tBr): [NO_T.tSc, O_BL, A(';')],
         (uuid4(), NO_T.tBr): [NO_T.tA, O_BL, A(';'), O_BL, NO_T.tBr],
-        (uuid4(), NO_T.tBr): [O_BL(None)],
         (uuid4(), NO_T.tBr): [NO_T.tR, O_BL, A(';'), O_BL, NO_T.tBr],
         (uuid4(), NO_T.tBr): [NO_T.tW, O_BL, A(';'), O_BL, NO_T.tBr],
         (uuid4(), NO_T.tBr): [NO_T.tSc, O_BL, A(';'), O_BL, NO_T.tBr],
@@ -120,4 +124,11 @@ assert all([all(j[1].name == key.removesuffix('_dict') for j in values)
             for key, values in raw_rules_dict.items() if (key_num := key)]), \
     f'в словаре {key_num} как минимум одно из правил имеет неверную функцию перехода'
 
-print(f'Руками было вбито {old_raw_rule_len} правил,\nВсего правил -- {sum(len(v) for v in raw_rules_dict.values())}')
+
+raw_rules_dict: dict[tuple[UUID, NO_TERMINALS], list[ALL_LEXICAL]] = {
+    key: val for values in raw_rules_dict.values() for key, val in values.items()
+}
+
+
+if __name__ == '__main__':
+    print(f'Руками было вбито {old_raw_rule_len} правил,\nВсего правил -- {len(raw_rules_dict)}')
