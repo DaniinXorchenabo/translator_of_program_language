@@ -25,7 +25,6 @@ keywords = {
 }
 
 
-
 chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"
 numerals = "01233456789"
 unary = '-'
@@ -40,7 +39,7 @@ UNARY_ENUM = enum.Enum('UNARY_ENUM', {i: i for i in unary})
 BINARY_ENUM = enum.Enum('BINARY_ENUM', {i: i for i in binary})
 SPECIAL_CHARS_ENUM = enum.Enum('SPECIAL_CHARS_ENUM', {i: i for i in special_chars})
 BLANKS_ENUM = enum.Enum('BLANKS_ENUM', {i: i for i in blanks})
-OPTIONAL_BLANKS_ENUM =  enum.Enum('OPTIONAL_BLANKS_ENUM', {i: i for i in list(blanks) + ['']})
+OPTIONAL_BLANKS_ENUM = enum.Enum('OPTIONAL_BLANKS_ENUM', {i: i for i in list(blanks)} | {'<empty>': None})
 
 
 TERMINALS = DynamicEnum = enum.Enum(
@@ -53,5 +52,6 @@ TERMINALS = DynamicEnum = enum.Enum(
 # class TERMINALS(enum.Enum):
 #     pass
 TERMINALS.__bases__ = ( KEYWORDS_ENUM, CHARS_ENUM, NUMERALS_ENUM, UNARY_ENUM, BINARY_ENUM, SPECIAL_CHARS_ENUM, BLANKS_ENUM, TERMINALS.__bases__[0],)
-print(TERMINALS, type(TERMINALS), [(issubclass(TERMINALS, i), i) for i in [KEYWORDS_ENUM, CHARS_ENUM, NUMERALS_ENUM, UNARY_ENUM, BINARY_ENUM, SPECIAL_CHARS_ENUM, BLANKS_ENUM, enum.Enum]])
-print(list(TERMINALS))
+
+assert all(map(lambda i: i[0], [(issubclass(TERMINALS, i), i) for i in [KEYWORDS_ENUM, CHARS_ENUM, NUMERALS_ENUM, UNARY_ENUM, BINARY_ENUM, SPECIAL_CHARS_ENUM, BLANKS_ENUM, enum.Enum]]))
+
