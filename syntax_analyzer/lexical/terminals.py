@@ -34,7 +34,7 @@ blanks = ' \n\t\r'
 special_chars = '():;,='
 
 KEYWORDS_ENUM = enum.Enum('KEYWORDS_ENUM', {i: i for i in keywords})
-CHARS_ENUM = enum.Enum('KEYWORDS_ENUM', {i: i for i in chars})
+CHARS_ENUM = enum.Enum('CHARS_ENUM', {i: i for i in chars})
 NUMERALS_ENUM = enum.Enum('NUMERALS_ENUM', {i: i for i in numerals})
 UNARY_ENUM = enum.Enum('UNARY_ENUM', {i: i for i in unary})
 BINARY_ENUM = enum.Enum('BINARY_ENUM', {i: i for i in binary})
