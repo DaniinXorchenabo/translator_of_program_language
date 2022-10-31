@@ -1,15 +1,29 @@
+from typing import Type
 from uuid import UUID, uuid4
 
 from syntax_analyzer.lexical.all_lexems import ALL_LEXICAL
-from syntax_analyzer.lexical.no_terminals import NO_TERMINALS
 from syntax_analyzer.rules.raw_rules import raw_rules_dict
+from syntax_analyzer.lexical import no_terminals
+
+NO_TERMINALS = no_terminals.get_no_terminals()
 
 RAW_RULES_TYPE = dict[tuple[UUID, NO_TERMINALS], list[ALL_LEXICAL | NO_TERMINALS]]
 RULES_SET_TYPE = set[tuple[tuple[NO_TERMINALS, UUID, tuple[ALL_LEXICAL | NO_TERMINALS]], ...]]
 
 
-def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE) -> tuple[
-    RULES_SET_TYPE, RULES_SET_TYPE, RULES_SET_TYPE]:
+def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE) \
+        -> tuple[RULES_SET_TYPE, RULES_SET_TYPE, RULES_SET_TYPE]:
+    """
+    Преобразование правил с первым терминальным символом в правой части
+    в цепочки из последовательностей правил,
+    заканчивающейся правилом с терминальным первым символом в правой части.
+    Разделение этих цепочек на циклические, не циклические
+    и те, которые невозможно вычислить, не вычислив циклические цепочки.
+
+    :param raw_rules:
+    :param not_change:
+    :return:
+    """
     # raw_rules_list: list[tuple[UUID, NO_TERMINALS, list[ALL_LEXICAL | NO_TERMINALS]]] = [
     #     (*key, val) for key, val in raw_rules.items()]
     closed_chains: list = []
@@ -51,6 +65,8 @@ def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE) -> tu
 
             current_targets = next_targets
             next_targets = []
+    print('^^^^^^^^', len(closed_chains))
+    print(*closed_chains, sep='\n')
     closed_chains: RULES_SET_TYPE = {
         tuple([
             tuple([(tuple(ii) if isinstance(ii, list) else ii) for ii in j])
@@ -90,7 +106,7 @@ def first_no_terminal_division(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYP
     no_changing: RAW_RULES_TYPE = dict()
     changing: RAW_RULES_TYPE = dict()
     for [uuid, key], right_part in raw_rules.items():
-        if isinstance(right_part[0], NO_TERMINALS):
+        if isinstance(right_part[0], no_terminals._first_NO_TERMINALS):
             changing[(uuid, key)] = right_part
         else:
             no_changing[(uuid, key)] = right_part
@@ -99,6 +115,12 @@ def first_no_terminal_division(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYP
 
 
 def transform_no_looping_rules(no_looping_rules: RULES_SET_TYPE) -> RAW_RULES_TYPE:
+    """
+    Преобразование цепочки из правил, начинающихся с нетерминала
+    в правило с терминальным первым символом в правой части.
+    :param no_looping_rules:
+    :return:
+    """
     new_rules: RAW_RULES_TYPE = dict()
     for old_rules_chain in no_looping_rules:
         left_part = (uuid4(), old_rules_chain[0][0])
@@ -112,16 +134,50 @@ def transform_no_looping_rules(no_looping_rules: RULES_SET_TYPE) -> RAW_RULES_TY
     return new_rules
 
 
-def resolved_yourself_recursion():
-    pass
+def resolved_yourself_recursion(
+        yourself_recursion: RAW_RULES_TYPE,
+        resolved_rules: RAW_RULES_TYPE,
+) -> tuple[RAW_RULES_TYPE, Type[NO_TERMINALS]]:
+    """
+    Преобразование правил с саморекурсией
+    (терминальный символ в левой части равен первому символу в правой части)
+    :param yourself_recursion:
+    :param resolved_rules:
+    :return:
+    """
+    global NO_TERMINALS
+    new_no_terminals = dict()
+    new_rules: RAW_RULES_TYPE = dict()
+    for [uuid, no_terminal], right_part in yourself_recursion.items():
+        new_no_terminals[_new_name := str(no_terminal.name) + '_clone_' + str(uuid4())] = 'cloned from ' + str(
+            no_terminal.name) + ' - ' + str(no_terminal.value)
+        no_terminals.no_terminals_dict.update(new_no_terminals)
+        NO_TERMINALS = no_terminals.get_no_terminals()
+        new_rules[(uuid4(), NO_TERMINALS[_new_name])] = right_part[1:]
+        new_rules[(uuid4(), NO_TERMINALS[_new_name])] = right_part[1:] + [NO_TERMINALS[_new_name]]
+        for [uuid_, no_terminal_], right_part_ in resolved_rules.items():
+            if no_terminal == no_terminal_ and right_part_[0] != no_terminal:
+                new_rules[(uuid4(), no_terminal)] = right_part_ + [new_no_terminals[_new_name]]
+
+    no_terminals.no_terminals_dict.update(new_no_terminals)
+    NO_TERMINALS = no_terminals.get_no_terminals()
+    return new_rules, NO_TERMINALS
 
 
 def transform_left_recursion_rules(
         looped_rules: RULES_SET_TYPE,
-        not_looped_with_no_terminal: RULES_SET_TYPE,
-        no_change,
-        all_rules
-):
+        # not_looped_with_no_terminal: RULES_SET_TYPE,
+        # no_change: RAW_RULES_TYPE,
+        # all_rules: RAW_RULES_TYPE
+) -> tuple[RAW_RULES_TYPE, set[tuple[UUID, NO_TERMINALS]]]:
+    """
+    Преобразование циклических цепочек правил в правила с саморекурсией.
+    :param looped_rules:
+    :param not_looped_with_no_terminal:
+    :param no_change:
+    :param all_rules:
+    :return:
+    """
     new_rules = dict()
     old_rules: set[tuple[UUID, NO_TERMINALS]] = set()
     new_other_right_parts: list[tuple[NO_TERMINALS, list[ALL_LEXICAL | NO_TERMINALS]]] = []
@@ -153,23 +209,24 @@ def transform_left_recursion_rules(
     #  обработали ли мы для него все побочные цепочки или нет.
     #  Если цепочка в процессе спуска натыкается на "ещё не обработанный цикл",
     #  то она должна уйти в очередь ожидания
-    current_new_right_parts: list[tuple[NO_TERMINALS, list[ALL_LEXICAL | NO_TERMINALS]]] = new_other_right_parts
-    next_new_right_parts = []
-    while bool(current_new_right_parts):
-        for [left, new_right_part] in current_new_right_parts:
-            new_right_part: list[ALL_LEXICAL | NO_TERMINALS]
-            # TODO: ещё учесть случай, когда мы приходим в саморекурсию
-            while isinstance(new_right_part[0], NO_TERMINALS):
-                for [uuid, no_terminal], right_part in (all_rules | new_rules).items():
-                    if new_right_part[0] != no_terminal \
-                            or (uuid, no_terminal) in old_rules \
-                            or (no_terminal, uuid, tuple(right_part)) in new_other_right_parts_resolved:
-                        continue
-
-        current_new_right_parts = next_new_right_parts
-        next_new_right_parts = []
+    # current_new_right_parts: list[tuple[NO_TERMINALS, list[ALL_LEXICAL | NO_TERMINALS]]] = new_other_right_parts
+    # next_new_right_parts = []
+    # while bool(current_new_right_parts):
+    #     for [left, new_right_part] in current_new_right_parts:
+    #         new_right_part: list[ALL_LEXICAL | NO_TERMINALS]
+    #         # TODO: ещё учесть случай, когда мы приходим в саморекурсию
+    #         while isinstance(new_right_part[0], no_terminals._first_NO_TERMINALS):
+    #             for [uuid, no_terminal], right_part in (all_rules | new_rules).items():
+    #                 if new_right_part[0] != no_terminal \
+    #                         or (uuid, no_terminal) in old_rules \
+    #                         or (no_terminal, uuid, tuple(right_part)) in new_other_right_parts_resolved:
+    #                     continue
+    #
+    #     current_new_right_parts = next_new_right_parts
+    #     next_new_right_parts = []
 
     print(*new_rules.items(), sep='\n')
+    return new_rules, old_rules
 
 
 # def sort_no_terminal_rules(raw_rules: dict[tuple[UUID, int], list[int]]) -> RAW_RULES_TYPE:
@@ -240,8 +297,55 @@ if __name__ == '__main__':
     print("===================", len(not_looped), len(looped), len(resolving_after_loop), len(raw_rules_dict),
           len(will_change), len(not_change))
 
-    new_rules = transform_no_looping_rules(not_looped)
+    transformed_not_looped_rules = transform_no_looping_rules(not_looped)
+    print(*transformed_not_looped_rules.items(), sep='\n')
+    print("===================", len(transformed_not_looped_rules))
 
-    print(*new_rules.items(), sep='\n')
-    print("===================", len(new_rules))
+    yourself_recursions, remove_rules = transform_left_recursion_rules(looped)
+    print("*******************", len(yourself_recursions))
+    print(*yourself_recursions.items(), sep='\n')
+    resolved_yourself_recursions, NO_TERMINALS = resolved_yourself_recursion(
+        yourself_recursions, transformed_not_looped_rules | not_change)
+    print("-------------------", len(resolved_yourself_recursions))
+    print(*resolved_yourself_recursions.items(), sep='\n')
+    print("*******************")
+    ff = {
+        (uuid, no_terminal): list(right_rule_part)
+        for rule_path in resolving_after_loop
+        for [no_terminal, uuid, right_rule_part] in rule_path
+        if right_rule_part is not None and (uuid, no_terminal) not in remove_rules
+
+    }
+    print(*ff.items(), sep='\n')
+    print("--------------")
+
+    looped_after_resolution, not_looped_after_resolution, resolving_after_loop_after_resolution = find_left_loops(
+        ff,
+        {
+            key: val
+            for key, val in
+            (not_change | transformed_not_looped_rules | resolved_yourself_recursions).items()
+            if key not in remove_rules
+        }
+    )
+    assert len(looped_after_resolution) == 0, "После второй итерации не должно оставаться зацикленных цепочек," \
+                                              f" а их обнаружено {len(looped_after_resolution)}. " \
+                                              f"Скорее всего какая-то ошибка в формировании грамматики"
+    assert len(resolving_after_loop_after_resolution) == 0, "После второй итерации не должно оставаться" \
+                                                            " не решённых цепочек," \
+                                                            f" а их обнаружено " \
+                                                            f"{len(resolving_after_loop_after_resolution)}. " \
+                                                            f"Скорее всего какая-то ошибка в формировании грамматики"
+    print("===================",
+          len(looped_after_resolution),
+          len(not_looped_after_resolution),
+          len(resolving_after_loop_after_resolution),
+          len(raw_rules_dict))
+    print(*looped_after_resolution, sep="\n")
+    print("--------------")
+    print(*not_looped_after_resolution, sep="\n")
+    print("--------------")
+    print(*resolving_after_loop_after_resolution, sep="\n")
+    print("--------------")
+
     # transform_left_recursion_rules(looped, not_looped, [], all_rules)

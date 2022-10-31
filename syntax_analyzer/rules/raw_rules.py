@@ -4,9 +4,11 @@ from typing import Type, Any
 from uuid import uuid4, UUID
 
 from syntax_analyzer.lexical.all_lexems import ALL_LEXICAL
-from syntax_analyzer.lexical.no_terminals import NO_TERMINALS, NO_T
 from syntax_analyzer.lexical.terminals import OPTIONAL_BLANKS_ENUM, BLANKS_ENUM, CHARS_ENUM, NUMERALS_ENUM, UNARY_ENUM, \
     BINARY_ENUM
+from syntax_analyzer.lexical import no_terminals
+
+NO_TERMINALS = NO_T = no_terminals.get_no_terminals()
 
 
 def recourse_gen(*data: list[Any] | str | enum.Enum | Type[enum.Enum], _const_data_prefix=None):
