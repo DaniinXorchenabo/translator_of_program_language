@@ -1,14 +1,19 @@
+from __future__ import annotations
 from typing import Type
 from uuid import UUID, uuid4
 
 from syntax_analyzer.lexical.all_lexems import ALL_LEXICAL
-from syntax_analyzer.rules.raw_rules import raw_rules_dict
+from syntax_analyzer.lexical.terminals import OPTIONAL_BLANKS_ENUM
+from syntax_analyzer.rules.raw_rules import raw_rules_dict, recourse_optional_gen
 from syntax_analyzer.lexical import no_terminals
 
 NO_TERMINALS = no_terminals.get_no_terminals()
 
 RAW_RULES_TYPE = dict[tuple[UUID, NO_TERMINALS], list[ALL_LEXICAL | NO_TERMINALS]]
 RULES_SET_TYPE = set[tuple[tuple[NO_TERMINALS, UUID, tuple[ALL_LEXICAL | NO_TERMINALS]], ...]]
+GROUP_TREE_TYPE = dict[NO_TERMINALS, set[tuple[ALL_LEXICAL | NO_TERMINALS, ...]]]
+GROUP_TREE_TYPE = dict[NO_TERMINALS, GROUP_TREE_TYPE | set[tuple[ALL_LEXICAL | NO_TERMINALS]]]
+GROUPED_RULES_TYPE = dict[NO_TERMINALS, set[NO_TERMINALS | ALL_LEXICAL | OPTIONAL_BLANKS_ENUM]]
 
 
 def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE) \
@@ -157,7 +162,7 @@ def resolved_yourself_recursion(
         new_rules[(uuid4(), NO_TERMINALS[_new_name])] = right_part[1:] + [NO_TERMINALS[_new_name]]
         for [uuid_, no_terminal_], right_part_ in resolved_rules.items():
             if no_terminal == no_terminal_ and right_part_[0] != no_terminal:
-                new_rules[(uuid4(), no_terminal)] = right_part_ + [new_no_terminals[_new_name]]
+                new_rules[(uuid4(), no_terminal)] = right_part_ + [NO_TERMINALS[_new_name]]
 
     no_terminals.no_terminals_dict.update(new_no_terminals)
     NO_TERMINALS = no_terminals.get_no_terminals()
@@ -265,7 +270,13 @@ def transform_left_recursion_rules(
 #
 #     print(*closed_chains, sep='\n')
 
-def grammar_transform(raw_rules):
+def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[NO_TERMINALS]]:
+    """
+    Построение LL1-грамматики из контекстно-свободной грамматики без правил с пустыми цепочками.
+    Для большей информации по разрешению рекурсий смотреть: https://lektsii.org/15-77737.html
+    :param raw_rules:
+    :return:
+    """
     global NO_TERMINALS
 
     middle_rules = raw_rules.copy()
@@ -349,13 +360,143 @@ def grammar_transform(raw_rules):
         will_change, not_change = first_no_terminal_division(middle_rules)
 
     print("------------", len(will_change), len(not_change))
-    print(*will_change.items(), sep='\n')
-    print("------------")
-    print(*not_change.items(), sep='\n')
+    # print(*will_change.items(), sep='\n')
+    # print("------------")
+    # print(*not_change.items(), sep='\n')
     assert loop_counter < 10, "Похоже грамматика зациклилась"
 
     return transform_all_rules, NO_TERMINALS
 
 
+def group_factorization(
+        key: NO_TERMINALS,
+        grouped_rules: set[tuple[ALL_LEXICAL | NO_TERMINALS, ...]],
+        new_rules: GROUP_TREE_TYPE | None = None,
+        old_rules: GROUP_TREE_TYPE | None = None,
+        _deep: int = 0
+) -> tuple[GROUP_TREE_TYPE, GROUP_TREE_TYPE, Type[NO_TERMINALS]]:
+    global NO_TERMINALS
+
+    if bool(grouped_rules) is False:
+        return new_rules, old_rules, NO_TERMINALS
+
+    new_rules: GROUP_TREE_TYPE = new_rules or dict()
+    old_rules: GROUP_TREE_TYPE = new_rules or dict()
+
+    new_dict: dict[tuple[ALL_LEXICAL | NO_TERMINALS], set[tuple[ALL_LEXICAL | NO_TERMINALS, ...]]] = dict()
+    last_new_dict = dict()
+    ind = 0
+    break_flag = False
+    while len(new_dict) < 2 and break_flag is False:
+        assert len(grouped_rules) > 1, "Такие правила должны отсекаться на более раннем этапе: " \
+                                       f"{key}, {grouped_rules}"
+        last_new_dict = new_dict
+        ind += 1
+        new_dict = dict()
+        for rule in grouped_rules:
+            # print(rule)
+            new_left_part = rule[:ind]
+            raw_remains = rule[ind:]
+            if bool(raw_remains):
+                # assert len(rule[ind:]) > 0, "Отдельно рассмотреть этот случай"
+                new_dict[new_left_part] = new_dict.get(new_left_part, set()) | {tuple(raw_remains)}
+            else:
+                break_flag = True
+                new_dict[new_left_part] = new_dict.get(new_left_part, set()) | {(OPTIONAL_BLANKS_ENUM(None),)}
+    if len(last_new_dict) == 1 and len(new_dict) > 1:
+        new_dict = last_new_dict
+    # print("+" * 10 + str(key), *[f"{len(k)} {k}    {v}" for k, v in new_dict.items()], "=" * 10, sep='\n')
+
+    new_no_terminals = dict()
+    nt_to_names = dict()
+    for problem_trigger, val in new_dict.items():
+        _new_name = f'{key.name}_clone_{uuid4()}'
+        nt_to_names[_new_name] = problem_trigger
+        new_no_terminals[_new_name] = f'cloned from {key.name} - {key.value} ' \
+                                      f'resolve the {"".join([str(i or i.name) for i in problem_trigger])} trigger'
+
+    no_terminals.no_terminals_dict.update(new_no_terminals)
+    NO_TERMINALS = no_terminals.get_no_terminals()
+
+    for trigger_name, problem_trigger in nt_to_names.items():
+        val = new_dict[problem_trigger] - {(OPTIONAL_BLANKS_ENUM(None),)}
+        no_terminal = NO_TERMINALS[trigger_name]
+        new_rules[key] = new_rules.get(key, set()) | {tuple([*list(problem_trigger), no_terminal])}
+        if len(val) == 1:
+            new_rules[no_terminal] = new_rules.get(no_terminal, set()) | val
+        elif len(val) > 1:
+            new_rules, old_rules, NO_TERMINALS = group_factorization(
+                no_terminal,
+                val,
+                new_rules=new_rules,
+                old_rules=old_rules,
+                _deep=_deep + 1
+            )
+    return new_rules, old_rules, NO_TERMINALS
+
+
+def dict_chain(rules: GROUP_TREE_TYPE, aggregate_dict=None, _deep=0) -> GROUPED_RULES_TYPE:
+    aggregate_dict: GROUPED_RULES_TYPE = aggregate_dict or dict()
+    for key, val in rules.items():
+        if isinstance(val, dict):
+            aggregate_dict |= dict_chain(val, aggregate_dict=aggregate_dict, _deep=_deep + 1)
+        else:
+            val: set
+            # print(key, val)
+            aggregate_dict[key] = aggregate_dict.get(key, set()) | val
+    return aggregate_dict
+
+
+def grammar_factorization(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[NO_TERMINALS]]:
+    """
+    После того, как решены все рекурсии, грамматику надо факторизировать
+    (делать так, чтобы для каждого нетерминала в левой части правила первый правый терминал был уникален)
+    Этот процесс может провалиться, уйдя в бесконечную рекурсию.
+
+    :param raw_rules:
+    :return:
+    """
+    global NO_TERMINALS
+    # raw_rules = recourse_optional_gen(raw_rules)
+    #
+    # raw_rules: dict[tuple[UUID, NO_TERMINALS], list[ALL_LEXICAL]] = {
+    #     (uuid4(), no_terminal): {
+    #          tuple(filter(lambda i: i != OPTIONAL_BLANKS_ENUM(None), new_rule))
+    #         for  rule in rules
+    #         for new_rule in recourse_optional_gen(*rule)
+    #     }
+    #     for [_, no_terminal], rules in raw_rules.items()
+    # }
+
+    middle_rules, NO_TERMINALS = grammar_transform(raw_rules)
+
+    middle_rules = {(uuid4(), no_terminal): {
+        tuple(right_part) for right_part in recourse_optional_gen(*val)
+    }
+                    for (_, no_terminal), val in middle_rules.items()}
+    # print("^"*20 + ' ' + str(len(middle_rules)), *[f"{type(v)} {k}\t\t {v}" for (_, k), v in middle_rules.items()], "^"*20, sep='\n')
+    # print('---------------------------------------------')
+    grouped_rules: GROUP_TREE_TYPE = dict()
+    for [uuid, no_terminal], right_rule_pat in middle_rules.items():
+        grouped_rules[no_terminal] = grouped_rules.get(no_terminal, set()) | right_rule_pat
+    # print(sum(len(val) for val in grouped_rules.values()))
+    # print(*grouped_rules.items(), sep='\n')
+    new_rules = dict()
+    old_rules = dict()
+    for key, rules in grouped_rules.items():
+        if len(rules) == 1:
+            new_rules[key] = rules
+            # print(key)
+        else:
+            data, old_rules, NO_TERMINALS = group_factorization(key, rules, new_rules, old_rules)
+            new_rules |= data
+    print('*'*20)
+    new_rules: GROUPED_RULES_TYPE = dict_chain(new_rules)
+
+    return new_rules, NO_TERMINALS
+
+
 if __name__ == '__main__':
-    grammar_transform(raw_rules_dict)
+    dict_, NO_TERMINALS = grammar_factorization(raw_rules_dict)
+    print(*[str(k) + '\n\t' + '\n\t'.join(map(lambda i: f"{i}", v)) for k, v in dict_.items()], sep='\n')
+    print(len(dict_))

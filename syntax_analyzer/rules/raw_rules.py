@@ -31,6 +31,34 @@ def recourse_gen(*data: list[Any] | str | enum.Enum | Type[enum.Enum], _const_da
             yield from recourse_gen(*data[1:], _const_data_prefix=_const_data_prefix[:] + [data[0]])
 
 
+def recourse_optional_gen(*data: list[Any] | str | enum.Enum | Type[enum.Enum], _const_data_prefix=None):
+    _const_data_prefix = _const_data_prefix or []
+
+    if len(data) == 1:
+
+        if isinstance(data[0], (list, set, frozenset, tuple)) \
+                or (inspect.isclass(data[0]) and issubclass(data[0], OPTIONAL_BLANKS_ENUM)):
+            if data[0] == OPTIONAL_BLANKS_ENUM:
+                yield _const_data_prefix
+                yield _const_data_prefix + [BLANKS_ENUM]
+            else:
+                for i in data[0]:
+                    yield _const_data_prefix + [i]
+        else:
+            yield _const_data_prefix + [data[0]]
+    else:
+        if isinstance(data[0], (list, set, frozenset, tuple)) \
+                or (inspect.isclass(data[0]) and issubclass(data[0], OPTIONAL_BLANKS_ENUM)):
+            if data[0] == OPTIONAL_BLANKS_ENUM:
+                yield from recourse_optional_gen(*data[1:], _const_data_prefix=_const_data_prefix[:] + [BLANKS_ENUM])
+                yield from recourse_optional_gen(*data[1:], _const_data_prefix=_const_data_prefix[:] + [])
+            else:
+                for i in data[0]:
+                    yield from recourse_optional_gen(*data[1:], _const_data_prefix=_const_data_prefix[:] + [i])
+        else:
+            yield from recourse_optional_gen(*data[1:], _const_data_prefix=_const_data_prefix[:] + [data[0]])
+
+
 A = ALL_LEXICAL
 O_BL = OPTIONAL_BLANKS_ENUM
 BL = BLANKS_ENUM
