@@ -26,12 +26,14 @@ keywords = {
 }
 
 
-chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"
-numerals = "01233456789"
-unary = '-'
-binary = '-+/'
-blanks = ' \n\t\r'
-special_chars = '():;,='
+chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_")
+numerals = set("01233456789")
+unary = set('-')
+binary = set('-+/')
+blanks = set(' \n\t\r')
+special_chars = set('():;,=')
+optional_blanks = special_chars | {'<empty>'}
+terminals = keywords | chars | numerals | unary | binary | blanks | special_chars | optional_blanks
 
 KEYWORDS_ENUM = enum.Enum('KEYWORDS_ENUM', {i: i for i in keywords})
 CHARS_ENUM = enum.Enum('CHARS_ENUM', {i: i for i in chars})
