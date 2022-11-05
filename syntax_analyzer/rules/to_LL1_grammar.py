@@ -13,7 +13,7 @@ RAW_RULES_TYPE = dict[tuple[UUID, NO_TERMINALS], list[ALL_LEXICAL | NO_TERMINALS
 RULES_SET_TYPE = set[tuple[tuple[NO_TERMINALS, UUID, tuple[ALL_LEXICAL | NO_TERMINALS]], ...]]
 GROUP_TREE_TYPE = dict[NO_TERMINALS, set[tuple[ALL_LEXICAL | NO_TERMINALS, ...]]]
 GROUP_TREE_TYPE = dict[NO_TERMINALS, GROUP_TREE_TYPE | set[tuple[ALL_LEXICAL | NO_TERMINALS]]]
-GROUPED_RULES_TYPE = dict[NO_TERMINALS, set[NO_TERMINALS | ALL_LEXICAL | OPTIONAL_BLANKS_ENUM]]
+GROUPED_RULES_TYPE = dict[NO_TERMINALS, set[tuple[NO_TERMINALS | ALL_LEXICAL | OPTIONAL_BLANKS_ENUM, ...]]]
 
 
 def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE) \
@@ -90,7 +90,7 @@ def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE) \
     }
     loop_chains = {i[:-1] for i in closed_chains if i[0][0] == i[-1][0]}
     no_looping_chains = {i[:] for i in closed_chains if i[0][0] != i[-1][0]}
-    resolve_after_loop = {i[:] for i in resolve_after_loop}
+    resolve_after_loop: set = {i[:] for i in resolve_after_loop}
     # print("___________________", *resolve_after_loop, "___________", sep='\n')
 
     # print(*closed_chains, sep='\n')
@@ -153,21 +153,75 @@ def resolved_yourself_recursion(
     global NO_TERMINALS
     new_no_terminals = dict()
     new_rules: RAW_RULES_TYPE = dict()
+
+    no_term_to_name: dict[tuple[UUID, NO_TERMINALS], str] = dict()
+
     for [uuid, no_terminal], right_part in yourself_recursion.items():
-        new_no_terminals[_new_name := str(no_terminal.name) + '_clone_' + str(uuid4())] = 'cloned from ' + str(
-            no_terminal.name) + ' - ' + str(no_terminal.value)
-        no_terminals.no_terminals_dict.update(new_no_terminals)
-        NO_TERMINALS = no_terminals.get_no_terminals()
+        _new_name = str(no_terminal.name) + '_clone_' + str(uuid4())
+        _new_val = 'cloned from ' + str(no_terminal.name) + ' - ' + str(no_terminal.value)
+        new_no_terminals[_new_name] = _new_val
+        no_term_to_name[(uuid, no_terminal)] = _new_name
+
+    no_terminals.no_terminals_dict.update(new_no_terminals)
+    NO_TERMINALS = no_terminals.get_no_terminals()
+
+    for [uuid, no_terminal], right_part in yourself_recursion.items():
+        _new_name = no_term_to_name[(uuid, no_terminal)]
+
         new_rules[(uuid4(), NO_TERMINALS[_new_name])] = right_part[1:]
         new_rules[(uuid4(), NO_TERMINALS[_new_name])] = right_part[1:] + [NO_TERMINALS[_new_name]]
         for [uuid_, no_terminal_], right_part_ in resolved_rules.items():
             if no_terminal == no_terminal_ and right_part_[0] != no_terminal:
                 new_rules[(uuid4(), no_terminal)] = right_part_ + [NO_TERMINALS[_new_name]]
+                new_rules[(uuid4(), no_terminal)] = right_part_
 
-    no_terminals.no_terminals_dict.update(new_no_terminals)
-    NO_TERMINALS = no_terminals.get_no_terminals()
+
     return new_rules, NO_TERMINALS
 
+
+# def resolved_yourself_recursion(
+#         yourself_recursion: RAW_RULES_TYPE,
+#         resolved_rules: RAW_RULES_TYPE,
+# ) -> tuple[RAW_RULES_TYPE, Type[NO_TERMINALS]]:
+#     """
+#     Преобразование правил с саморекурсией
+#     (терминальный символ в левой части равен первому символу в правой части)
+#     :param yourself_recursion:
+#     :param resolved_rules:
+#     :return:
+#     """
+#     global NO_TERMINALS
+#     new_no_terminals = dict()
+#     new_rules: RAW_RULES_TYPE = dict()
+#
+#     no_term_to_name: dict[tuple[UUID, NO_TERMINALS, UUID, NO_TERMINALS], str] = dict()
+#
+#     for [uuid, no_terminal], right_part in yourself_recursion.items():
+#         for [uuid_, no_terminal_], right_part_ in resolved_rules.items():
+#             if no_terminal == no_terminal_ and right_part_[0] != no_terminal:
+#                 # new_rules[(uuid4(), no_terminal)] = right_part_ + [NO_TERMINALS[_new_name]]
+#                 new_uuid =  str(uuid4())
+#                 _new_name = str(no_terminal.name) + '_clone_' + new_uuid + f' from {right_part_}'
+#                 _new_val = 'cloned from ' + str(no_terminal.name) + ' - ' + str(no_terminal.value) + f' from {right_part_} + {new_uuid}'
+#                 new_no_terminals[_new_name] = _new_val
+#                 no_term_to_name[(uuid, no_terminal, uuid_, no_terminal_)] = _new_name
+#
+#
+#     no_terminals.no_terminals_dict.update(new_no_terminals)
+#     NO_TERMINALS = no_terminals.get_no_terminals()
+#
+#     for [uuid, no_terminal], right_part in yourself_recursion.items():
+#         for [uuid_, no_terminal_], right_part_ in resolved_rules.items():
+#             if no_terminal == no_terminal_ and right_part_[0] != no_terminal:
+#                 _new_name = no_term_to_name[(uuid, no_terminal, uuid_, no_terminal_)]
+#                 new_rules[(uuid4(), NO_TERMINALS[_new_name])] = right_part[1:]
+#                 new_rules[(uuid4(), NO_TERMINALS[_new_name])] = right_part[1:] + [NO_TERMINALS[_new_name]]
+#                 new_rules[(uuid4(), no_terminal)] = right_part_ + [NO_TERMINALS[_new_name]]
+#                 new_rules[(uuid4(), no_terminal)] = right_part_
+#
+#
+#
+#     return new_rules, NO_TERMINALS
 
 def transform_left_recursion_rules(
         looped_rules: RULES_SET_TYPE,
@@ -284,6 +338,7 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
     will_change, not_change = first_no_terminal_division(middle_rules)
     loop_counter = 0
     while bool(will_change) and loop_counter < 10:
+        # print(middle_rules)
         loop_counter += 1
         print("------------", len(will_change), len(not_change))
         assert len(will_change) + len(not_change) == len(middle_rules), "Ошибка в функции разделения на правила, " \
@@ -371,17 +426,19 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
 def group_factorization(
         key: NO_TERMINALS,
         grouped_rules: set[tuple[ALL_LEXICAL | NO_TERMINALS, ...]],
-        new_rules: GROUP_TREE_TYPE | None = None,
+        global_new_rules: GROUP_TREE_TYPE | None = None,
         old_rules: GROUP_TREE_TYPE | None = None,
         _deep: int = 0
 ) -> tuple[GROUP_TREE_TYPE, GROUP_TREE_TYPE, Type[NO_TERMINALS]]:
     global NO_TERMINALS
 
     if bool(grouped_rules) is False:
-        return new_rules, old_rules, NO_TERMINALS
+        return global_new_rules, old_rules, NO_TERMINALS
 
-    new_rules: GROUP_TREE_TYPE = new_rules or dict()
-    old_rules: GROUP_TREE_TYPE = new_rules or dict()
+    global_new_rules: GROUP_TREE_TYPE = global_new_rules or dict()
+    old_rules: GROUP_TREE_TYPE = old_rules or dict()
+
+    local_new_rules = dict()
 
     new_dict: dict[tuple[ALL_LEXICAL | NO_TERMINALS], set[tuple[ALL_LEXICAL | NO_TERMINALS, ...]]] = dict()
     last_new_dict = dict()
@@ -413,26 +470,36 @@ def group_factorization(
         _new_name = f'{key.name}_clone_{uuid4()}'
         nt_to_names[_new_name] = problem_trigger
         new_no_terminals[_new_name] = f'cloned from {key.name} - {key.value} ' \
-                                      f'resolve the {"".join([str(i or i.name) for i in problem_trigger])} trigger'
+                                      f'resolve the ||{"".join([str(i or i.name) for i in problem_trigger])}|| trigger'
 
     no_terminals.no_terminals_dict.update(new_no_terminals)
     NO_TERMINALS = no_terminals.get_no_terminals()
 
     for trigger_name, problem_trigger in nt_to_names.items():
         val = new_dict[problem_trigger] - {(OPTIONAL_BLANKS_ENUM(None),)}
+        # val = new_dict[problem_trigger]
         no_terminal = NO_TERMINALS[trigger_name]
-        new_rules[key] = new_rules.get(key, set()) | {tuple([*list(problem_trigger), no_terminal])}
+        local_new_rules[key] = local_new_rules.get(key, set()) | {tuple([*list(problem_trigger), no_terminal])}
         if len(val) == 1:
-            new_rules[no_terminal] = new_rules.get(no_terminal, set()) | val
+            local_new_rules[no_terminal] = local_new_rules.get(no_terminal, set()) | val
         elif len(val) > 1:
-            new_rules, old_rules, NO_TERMINALS = group_factorization(
+
+            res_new_rules, old_rules, NO_TERMINALS = group_factorization(
                 no_terminal,
                 val,
-                new_rules=new_rules,
+                global_new_rules=global_new_rules,
                 old_rules=old_rules,
                 _deep=_deep + 1
             )
-    return new_rules, old_rules, NO_TERMINALS
+            local_new_rules = res_new_rules | { key: val | res_new_rules.get(key, set()) for key, val in  local_new_rules.items()}
+        else:
+            local_new_rules[no_terminal] =  local_new_rules.get(no_terminal, set()) |  {(OPTIONAL_BLANKS_ENUM(None),)}
+            print(key, trigger_name, problem_trigger, val, no_terminal)
+
+            # raise ValueError("Подумать, что делать, если оно пустое")
+
+    global_new_rules = local_new_rules | { key: val | local_new_rules.get(key, set()) for key, val in  global_new_rules.items()}
+    return global_new_rules, old_rules, NO_TERMINALS
 
 
 def dict_chain(rules: GROUP_TREE_TYPE, aggregate_dict=None, _deep=0) -> GROUPED_RULES_TYPE:
@@ -447,7 +514,7 @@ def dict_chain(rules: GROUP_TREE_TYPE, aggregate_dict=None, _deep=0) -> GROUPED_
     return aggregate_dict
 
 
-def grammar_factorization(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[NO_TERMINALS]]:
+def grammar_factorization(raw_rules: RAW_RULES_TYPE) -> tuple[GROUPED_RULES_TYPE, Type[NO_TERMINALS]]:
     """
     После того, как решены все рекурсии, грамматику надо факторизировать
     (делать так, чтобы для каждого нетерминала в левой части правила первый правый терминал был уникален)
@@ -457,18 +524,9 @@ def grammar_factorization(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Ty
     :return:
     """
     global NO_TERMINALS
-    # raw_rules = recourse_optional_gen(raw_rules)
-    #
-    # raw_rules: dict[tuple[UUID, NO_TERMINALS], list[ALL_LEXICAL]] = {
-    #     (uuid4(), no_terminal): {
-    #          tuple(filter(lambda i: i != OPTIONAL_BLANKS_ENUM(None), new_rule))
-    #         for  rule in rules
-    #         for new_rule in recourse_optional_gen(*rule)
-    #     }
-    #     for [_, no_terminal], rules in raw_rules.items()
-    # }
 
     middle_rules, NO_TERMINALS = grammar_transform(raw_rules)
+    # print(middle_rules)
 
     middle_rules = {(uuid4(), no_terminal): {
         tuple(right_part) for right_part in recourse_optional_gen(*val)
