@@ -54,7 +54,8 @@ def first_f(
                 is_calculated_first=is_calculated_first,
                 is_calculated_second=is_calculated_second,
             )
-    is_calculated_first[symbol] = res
+    res -= {OPTIONAL_BLANKS_ENUM(None)}
+    is_calculated_first[symbol] =  res
     return res
 
 
@@ -73,6 +74,8 @@ def next_f(
 
     if symbol in is_calculated_second:
         return is_calculated_second[symbol]
+    assert symbol != OPTIONAL_BLANKS_ENUM(None)
+
 
     symbol_buf_second.add(symbol)
     res: set[TERMINALS | Type[enum.Enum]] = set()
@@ -80,7 +83,7 @@ def next_f(
         for right_part in right_parts:
             find = False
             for ind, char in enumerate(right_part):
-                if find is True:
+                if find is True and char != OPTIONAL_BLANKS_ENUM(None):
                     find = False
                     res |= first_f(
                         char,
@@ -90,9 +93,12 @@ def next_f(
                         is_calculated_first=is_calculated_first,
                         is_calculated_second=is_calculated_second,
                     )
+                    assert OPTIONAL_BLANKS_ENUM(None) not in res
+                elif find is True and char == OPTIONAL_BLANKS_ENUM(None):
+                    continue
                 if char == symbol:
                     find = True
-            if find is True and no_terminal not in symbol_buf_second:
+            if find is True and (no_terminal not in symbol_buf_second ):
                 res |= next_f(
                     no_terminal,
                     rules,
