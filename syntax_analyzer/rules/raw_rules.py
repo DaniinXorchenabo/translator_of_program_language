@@ -39,9 +39,9 @@ def recourse_optional_gen(*data: list[Any] | str | enum.Enum | Type[enum.Enum], 
         if isinstance(data[0], (list, set, frozenset, tuple)) \
                 or (inspect.isclass(data[0]) and issubclass(data[0], OPTIONAL_BLANKS_ENUM)):
             if data[0] == OPTIONAL_BLANKS_ENUM:
-                # yield _const_data_prefix
-                # yield _const_data_prefix + [BLANKS_ENUM]
-                yield _const_data_prefix + [OPTIONAL_BLANKS_ENUM]
+                yield _const_data_prefix
+                yield _const_data_prefix + [BLANKS_ENUM]
+                # yield _const_data_prefix + [OPTIONAL_BLANKS_ENUM]
             else:
                 for i in data[0]:
                     yield _const_data_prefix + [i]
@@ -51,10 +51,10 @@ def recourse_optional_gen(*data: list[Any] | str | enum.Enum | Type[enum.Enum], 
         if isinstance(data[0], (list, set, frozenset, tuple)) \
                 or (inspect.isclass(data[0]) and issubclass(data[0], OPTIONAL_BLANKS_ENUM)):
             if data[0] == OPTIONAL_BLANKS_ENUM:
-                # yield from recourse_optional_gen(*data[1:], _const_data_prefix=_const_data_prefix[:] + [BLANKS_ENUM])
-                # yield from recourse_optional_gen(*data[1:], _const_data_prefix=_const_data_prefix[:] + [])
-                yield from recourse_optional_gen(*data[1:],
-                                                 _const_data_prefix=_const_data_prefix[:] + [OPTIONAL_BLANKS_ENUM])
+                yield from recourse_optional_gen(*data[1:], _const_data_prefix=_const_data_prefix[:] + [BLANKS_ENUM])
+                yield from recourse_optional_gen(*data[1:], _const_data_prefix=_const_data_prefix[:] + [])
+                # yield from recourse_optional_gen(*data[1:],
+                #                                  _const_data_prefix=_const_data_prefix[:] + [OPTIONAL_BLANKS_ENUM])
             else:
                 for i in data[0]:
                     yield from recourse_optional_gen(*data[1:], _const_data_prefix=_const_data_prefix[:] + [i])
