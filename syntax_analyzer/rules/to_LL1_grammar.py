@@ -510,48 +510,56 @@ def dict_chain(rules: GROUP_TREE_TYPE, aggregate_dict=None, _deep=0) -> GROUPED_
         else:
             val: set
             # print(key, val)
-            aggregate_dict[key] = aggregate_dict.get(key, set()) | val
-    return aggregate_dict
+            # aggregate_dict[key] = aggregate_dict.get(key, set()) | val..
+    # return aggregate_dict
+#
+
+# def grammar_factorization(raw_rules: RAW_RULES_TYPE) -> tuple[GROUPED_RULES_TYPE, Type[NO_TERMINALS]]:
+#     """
+#     После того, как решены все рекурсии, грамматику надо факторизировать
+#     (делать так, чтобы для каждого нетерминала в левой части правила первый правый терминал был уникален)
+#     Этот процесс может провалиться, уйдя в бесконечную рекурсию.
+#
+#     :param raw_rules:
+#     :return:
+#     """
+#     global NO_TERMINALS
+#
+#     middle_rules, NO_TERMINALS = grammar_transform(raw_rules)
+#     # print(middle_rules)
+#
+#     middle_rules = {(uuid4(), no_terminal): {
+#         tuple(right_part) for right_part in recourse_optional_gen(*val)
+#     }
+#                     for (_, no_terminal), val in middle_rules.items()}
+#     # print("^"*20 + ' ' + str(len(middle_rules)), *[f"{type(v)} {k}\t\t {v}" for (_, k), v in middle_rules.items()], "^"*20, sep='\n')
+#     # print('---------------------------------------------')
+#     grouped_rules: GROUP_TREE_TYPE = dict()
+#     for [uuid, no_terminal], right_rule_pat in middle_rules.items():
+#         grouped_rules[no_terminal] = grouped_rules.get(no_terminal, set()) | right_rule_pat
+#     # print(sum(len(val) for val in grouped_rules.values()))
+#     # print(*grouped_rules.items(), sep='\n')
+#     new_rules = dict()
+#     old_rules = dict()
+#     for key, rules in grouped_rules.items():
+#         if len(rules) == 1:
+#             new_rules[key] = rules
+#             # print(key)
+#         else:
+#             data, old_rules, NO_TERMINALS = group_factorization(key, rules, new_rules, old_rules)
+#             new_rules |= data
+#     print('*'*20)
+#     new_rules: GROUPED_RULES_TYPE = dict_chain(new_rules)
 
 
-def grammar_factorization(raw_rules: RAW_RULES_TYPE) -> tuple[GROUPED_RULES_TYPE, Type[NO_TERMINALS]]:
-    """
-    После того, как решены все рекурсии, грамматику надо факторизировать
-    (делать так, чтобы для каждого нетерминала в левой части правила первый правый терминал был уникален)
-    Этот процесс может провалиться, уйдя в бесконечную рекурсию.
-
-    :param raw_rules:
-    :return:
-    """
+def transform_longer_first_empty_rules(rules: GROUPED_RULES_TYPE) -> GROUPED_RULES_TYPE:
     global NO_TERMINALS
-
-    middle_rules, NO_TERMINALS = grammar_transform(raw_rules)
-    # print(middle_rules)
-
-    middle_rules = {(uuid4(), no_terminal): {
-        tuple(right_part) for right_part in recourse_optional_gen(*val)
-    }
-                    for (_, no_terminal), val in middle_rules.items()}
-    # print("^"*20 + ' ' + str(len(middle_rules)), *[f"{type(v)} {k}\t\t {v}" for (_, k), v in middle_rules.items()], "^"*20, sep='\n')
-    # print('---------------------------------------------')
-    grouped_rules: GROUP_TREE_TYPE = dict()
-    for [uuid, no_terminal], right_rule_pat in middle_rules.items():
-        grouped_rules[no_terminal] = grouped_rules.get(no_terminal, set()) | right_rule_pat
-    # print(sum(len(val) for val in grouped_rules.values()))
-    # print(*grouped_rules.items(), sep='\n')
-    new_rules = dict()
-    old_rules = dict()
-    for key, rules in grouped_rules.items():
-        if len(rules) == 1:
-            new_rules[key] = rules
-            # print(key)
-        else:
-            data, old_rules, NO_TERMINALS = group_factorization(key, rules, new_rules, old_rules)
-            new_rules |= data
-    print('*'*20)
-    new_rules: GROUPED_RULES_TYPE = dict_chain(new_rules)
-
-    return new_rules, NO_TERMINALS
+    for no_term, right_parts in rules.items():
+        for rule in right_parts:
+            if rule[0] == OPTIONAL_BLANKS_ENUM(None) and len(rule) > 1 :
+                rules[no_term] -= {rule}
+                rules[no_term] |= {rule[1:]}
+    return rules
 
 
 if __name__ == '__main__':
