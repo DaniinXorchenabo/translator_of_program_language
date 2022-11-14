@@ -1,4 +1,4 @@
-from syntax_analyzer.lexical.terminals import keywords, chars, numerals, unary, binary, special_chars, blanks
+from syntax_analyzer.lexical.terminals import keywords, chars, numerals, unary, binary, special_chars, blanks, TERMINALS
 
 
 def lexical_analyzer(data: str):
@@ -12,11 +12,11 @@ def lexical_analyzer(data: str):
                 for item in dictionary
                 if (global_item := item) is not None
         ):
-            yield global_item
+            yield  TERMINALS[global_item]
             # lexem_list.append(global_item)
             data = data.removeprefix(global_item)
         else:
-            raise SyntaxError(f"Строка <<< {data} >>> начинается с недопустимого символа или комбинации символов")
+            raise SyntaxError(f"Строка <<<{data}>>> начинается с недопустимого символа или комбинации символов")
             # return
     # print("Лексический анализатор закончил проверку, "
     #           "поданная строка является корректной с точки зрения лексического анализатора")
