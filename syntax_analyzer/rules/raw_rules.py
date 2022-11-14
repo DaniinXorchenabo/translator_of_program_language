@@ -75,20 +75,20 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
     },
 
     tD_dict={
-        (uuid4(), NO_T.tD): [A.VAR, BL, NO_T.tDv,  A(":"), O_BL, A.INTEGER, O_BL, A(';')],  # , O_BL
+        (uuid4(), NO_T.tD): [A.VAR, BL, NO_T.tDv, O_BL, A.INTEGER, O_BL, A(';')],  # , O_BL
     },
 
     tDv_dict={
-        (uuid4(), NO_T.tDv): [NO_T.tV],  # , O_BL
+        (uuid4(), NO_T.tDv): [NO_T.tV,  A(":")],  # , O_BL
         # (uuid4(), NO_T.tDv): [NO_T.tV, O_BL, A(','), O_BL, NO_T.tDv],
-        (uuid4(), NO_T.tDv): [NO_T.tV, O_BL, A(','), NO_T.tDv],
+        (uuid4(), NO_T.tDv): [NO_T.tV, A(','), NO_T.tDv],
     },
     tV_dict={
         (uuid4(), NO_T.tV): [CHARS_ENUM, NO_T.tV],
-        (uuid4(), NO_T.tV): [CHARS_ENUM],
+        (uuid4(), NO_T.tV): [CHARS_ENUM, BL],
     },
     tB_dict={
-        (uuid4(), NO_T.tB): [A.BEGIN, BL, NO_T.tBr, O_BL, A.END],
+        (uuid4(), NO_T.tB): [A.BEGIN, BL, NO_T.tBr,  A.END],
     },
     tBr_dict={
         (uuid4(), NO_T.tBr): [A.PASS,  A(';')],
