@@ -71,7 +71,7 @@ SHOP_MACHINE_TYPE = dict[Delta, DeltaDisplay]
 def deterministic_top_down_parsing_builder(rules_dict: RAW_RULES_TYPE) -> \
         tuple[SHOP_MACHINE_TYPE, Type[NO_TERMINALS], GROUPED_RULES_TYPE]:
     global NO_TERMINALS
-    ll1_rules, NO_TERMINALS = grammar_factorization(rules_dict)
+    ll1_rules, NO_TERMINALS = grammar_transform(rules_dict)
     ll1_rules: GROUPED_RULES_TYPE
 
     first_f_dict = dict()

@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 from syntax_analyzer.lexical.all_lexems import ALL_LEXICAL
 from syntax_analyzer.lexical.terminals import OPTIONAL_BLANKS_ENUM
-from syntax_analyzer.rules.raw_rules import raw_rules_dict, recourse_optional_gen
+from syntax_analyzer.rules.raw_rules import raw_rules_dict, recourse_optional_gen, START_STATES
 from syntax_analyzer.lexical import no_terminals
 
 NO_TERMINALS = no_terminals.get_no_terminals()
@@ -16,7 +16,7 @@ GROUP_TREE_TYPE = dict[NO_TERMINALS, GROUP_TREE_TYPE | set[tuple[ALL_LEXICAL | N
 GROUPED_RULES_TYPE = dict[NO_TERMINALS, set[tuple[NO_TERMINALS | ALL_LEXICAL | OPTIONAL_BLANKS_ENUM, ...]]]
 
 
-def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE) \
+def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE, StartStates: set[NO_TERMINALS]) \
         -> tuple[RULES_SET_TYPE, RULES_SET_TYPE, RULES_SET_TYPE]:
     """
     Преобразование правил с первым терминальным символом в правой части
@@ -34,69 +34,108 @@ def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE) \
     closed_chains: list = []
     resolve_after_loop: list = []
     used = set()
-    for [uuid, trigger_target], trigger_target_right in raw_rules.items():
+
+    for [uuid, trigger_target], trigger_target_right in {
+        key: val for key, val in raw_rules.items() if key[1] in StartStates
+    }.items():
         # if trigger_target in used:
         #     continue
-        used.add(trigger_target)
-        current_targets = [[[trigger_target, uuid, trigger_target_right]]]
-        next_targets = []
 
+        #
+        used.add(trigger_target)
+        current_targets: list[list[tuple[NO_TERMINALS, UUID, list[ALL_LEXICAL | NO_TERMINALS]]]] \
+            = [[(trigger_target, uuid, trigger_target_right)]]
+        next_targets: list[list[tuple[NO_TERMINALS, UUID, list[ALL_LEXICAL | NO_TERMINALS]]]] = []
+        # Происходит поиск в ширину по графу
         while bool(current_targets):
             for target in current_targets:
                 used.add(target[-1][0])
                 if target[-1][0] == trigger_target and len(target) > 1:
+                    # Если цепочка начинается и заканчивается одним и тем же нетерминалом
+                    # ? то считаем, что мы дошли до конца этой цепочки.
+                    # Это цикл
+                    target[-1] = target[-1][0], None, None
                     closed_chains.append(target)
                     continue
                 elif any(i[0] == target[-1][0] for ind, i in enumerate(target[:-1]) if (_ind := ind)):
-                    # print('************', *target, '************', sep='\n')
+                    # Если один и тот же нетерминал встречается в одной последовательности,
+                    # То эта цепочка содержит цикл и должна будет решена после решения всех циклов.
+                    target[-1] = target[-1][0], None, None
                     closed_chains.append(target[_ind:])
                     resolve_after_loop.append(target[:])
                     continue
-                target_variants = []
-                for target_variant, rules in (raw_rules | not_change).items():
-                    if target_variant[1] == target[-1][0]:
-                        target_variants.append([rules[0], target_variant[0], rules])
-                if bool(target_variants):
-                    for i in target_variants:
-                        next_target = [i[:] for i in target]
-                        next_target[-1][1] = i[1]
-                        next_target[-1][2] = i[2]
-                        i[1] = None
-                        i[2] = None
-                        next_targets.append(next_target + [i])
                 else:
-                    # добавляем символ завершения к текущей цепочке
-                    closed_chains.append(target)
+                    # смотрим, имеет ли цепочка продолжение
+                    target_variants: list[
+                        list[tuple[ALL_LEXICAL | NO_TERMINALS, UUID, list[ALL_LEXICAL | NO_TERMINALS]]]] = []
+                    for target_variant, rules in (raw_rules | not_change).items():
+                        if target_variant[1] == target[-1][0]:
+                            next_target = [i[:] for i in target]
+                            next_target[-1] = next_target[-1][0], target_variant[0], rules[:]
+                            # next_target[-1][2] = i[2]
+
+                            target_variants.append(next_target + [(
+                                rules[0],  # Переходим к следующему элементу в дереве графа
+                                target_variant[0],
+                                # Это неправильные данные, их необходимо заменить (Это произойдёт на следёющей итерации цикла, когда только что созданный next_target станат target и когда для него выполнится  target_variant[1] == target[-1][0])
+                                rules[:]  # Это неправильные данные, их необходимо заменить
+                            )])
+                    if bool(target_variants):
+                        for i in target_variants:
+                            next_targets.append(i)
+
+                    else:
+                        # добавляем символ завершения к текущей цепочке
+                        # TODO: проверить правильность этой строки
+                        next_target = [i[:] for i in target]
+                        # Исправляем некорректные данные, которые были записаны при добавлении.
+                        next_target[-1] = next_target[-1][0], None, None
+                        # next_targets.append(next_target)
+                        closed_chains.append(next_target)
 
             current_targets = next_targets
             next_targets = []
+
     # print('^^^^^^^^', len(closed_chains))
     # print(*closed_chains, sep='\n')
-    closed_chains: RULES_SET_TYPE = {
-        tuple([
-            tuple([(tuple(ii) if isinstance(ii, list) else ii) for ii in j])
-            for j in i
-        ])
-        for i in closed_chains
-    }
-    # print("___________________", *resolve_after_loop, "___________", sep='\n')
-
-    resolve_after_loop: RULES_SET_TYPE = {
-        tuple([
-            tuple([(tuple(ii) if isinstance(ii, list) else ii) for ii in j])
-            for j in i
-        ])
-        for i in resolve_after_loop
-    }
-    loop_chains = {i[:-1] for i in closed_chains if i[0][0] == i[-1][0]}
-    no_looping_chains = {i[:] for i in closed_chains if i[0][0] != i[-1][0]}
-    resolve_after_loop: set = {i[:] for i in resolve_after_loop}
+    # Делим цепочки по типу завершения: loops завершаются циклом (первый терминал равен последнему),
+    # а no_loops заканчивается терминалом, либо перечислением терминалов
+    loops = []
+    no_loops = []
+    for chain in closed_chains:
+        if len(chain) != 1 and chain[0][0] == chain[-1][0]:
+            chain = tuple(((i[0], i[1], tuple(i[2])) if i[2] is not None else i) for i in chain)
+            loops.append(chain)
+        else:
+            chain = tuple(((i[0], i[1], tuple(i[2])) if i[2] is not None else i) for i in chain)
+            no_loops.append(chain)
+    loops = set(loops)
+    print()
+    # closed_chains: RULES_SET_TYPE = {
+    #     tuple([
+    #         tuple([(tuple(ii) if isinstance(ii, list) else ii) for ii in j])
+    #         for j in i
+    #     ])
+    #     for i in closed_chains
+    # }
+    # # print("___________________", *resolve_after_loop, "___________", sep='\n')
+    #
+    # resolve_after_loop: RULES_SET_TYPE = {
+    #     tuple([
+    #         tuple([(tuple(ii) if isinstance(ii, list) else ii) for ii in j])
+    #         for j in i
+    #     ])
+    #     for i in resolve_after_loop
+    # }
+    # loop_chains = {i[:-1] for i in closed_chains if i[0][0] == i[-1][0]}
+    # no_looping_chains = {i[:] for i in closed_chains if i[0][0] != i[-1][0]}
+    # resolve_after_loop: set = {i[:] for i in resolve_after_loop}
     # print("___________________", *resolve_after_loop, "___________", sep='\n')
 
     # print(*closed_chains, sep='\n')
     # print("----")
     # print(*loop_chains, sep='\n')
-    return loop_chains, no_looping_chains, resolve_after_loop
+    return loops, no_loops, resolve_after_loop
 
 
 def first_no_terminal_division(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, RAW_RULES_TYPE]:
@@ -169,12 +208,11 @@ def resolved_yourself_recursion(
         _new_name = no_term_to_name[(uuid, no_terminal)]
 
         new_rules[(uuid4(), NO_TERMINALS[_new_name])] = right_part[1:]
-        new_rules[(uuid4(), NO_TERMINALS[_new_name])] = right_part[1:] + [NO_TERMINALS[_new_name]]
+        new_rules[(uuid4(), NO_TERMINALS[_new_name])] = list(right_part[1:]) + [NO_TERMINALS[_new_name]]
         for [uuid_, no_terminal_], right_part_ in resolved_rules.items():
             if no_terminal == no_terminal_ and right_part_[0] != no_terminal:
                 new_rules[(uuid4(), no_terminal)] = right_part_ + [NO_TERMINALS[_new_name]]
                 new_rules[(uuid4(), no_terminal)] = right_part_
-
 
     return new_rules, NO_TERMINALS
 
@@ -224,7 +262,7 @@ def resolved_yourself_recursion(
 #     return new_rules, NO_TERMINALS
 
 def transform_left_recursion_rules(
-        looped_rules: RULES_SET_TYPE,
+        looped_rules: set[tuple[tuple[NO_TERMINALS, UUID, tuple[NO_TERMINALS | ALL_LEXICAL, ...]], ...]],
         # not_looped_with_no_terminal: RULES_SET_TYPE,
         # no_change: RAW_RULES_TYPE,
         # all_rules: RAW_RULES_TYPE
@@ -239,23 +277,33 @@ def transform_left_recursion_rules(
     """
     new_rules = dict()
     old_rules: set[tuple[UUID, NO_TERMINALS]] = set()
+    self_recursion = dict()
     new_other_right_parts: list[tuple[NO_TERMINALS, list[ALL_LEXICAL | NO_TERMINALS]]] = []
     new_other_right_parts_resolved: dict[
         tuple[NO_TERMINALS, tuple[ALL_LEXICAL | NO_TERMINALS]], tuple[NO_TERMINALS, UUID]] = dict()
     for loop_chain in looped_rules:
-        old_rules.add((loop_chain[-1][1], loop_chain[-1][0]))
-        # FIXME: Возможно не учитывается сценарий,
-        #  когда правила не из петли для нетерминала, запускающего рекурсию
-        new_right_part = [*loop_chain[-1][-1][1:]]
+        if len(loop_chain) > 2:
+            old_rules.add((loop_chain[-2][1], loop_chain[-2][0]))
+            # FIXME: Возможно не учитывается сценарий,
+            #  когда правила не из петли для нетерминала, запускающего рекурсию
+            new_right_part = [loop_chain[-2][2][0]] \
+                             + [ii for i in reversed([i[2][1:] for i in loop_chain[:-2]]) for ii in i] \
+                             + list(loop_chain[-2][2][1:])
 
-        for ind, [rule_key, uuid, right_part] in enumerate(loop_chain[:-1]):
-            new_other_right_parts.append((loop_chain[-1][0], list(right_part) + new_right_part[:]))
-            new_other_right_parts_resolved[(loop_chain[-1][0], tuple(list(right_part) + new_right_part[:]))] = tuple(
-                loop_chain[ind + 1][:2])
-            new_right_part = list(right_part[1:]) + new_right_part
-
-        new_right_part = [loop_chain[-1][0]] + new_right_part
-        new_rules[(uuid4(), loop_chain[-1][0])] = [loop_chain[-1][0]] + new_right_part
+            # for ind, [rule_key, uuid, right_part] in enumerate(loop_chain[:-1]):
+            #     new_other_right_parts.append((loop_chain[-1][0], list(right_part) + new_right_part[:]))
+            #     new_other_right_parts_resolved[(loop_chain[-1][0], tuple(list(right_part) + new_right_part[:]))] = tuple(
+            #         loop_chain[ind + 1][:2])
+            #     new_right_part = list(right_part[1:]) + new_right_part
+            #
+            # new_right_part = [loop_chain[-1][0]] + new_right_part
+            # new_rules[(uuid4(), loop_chain[-1][0])] = [loop_chain[-1][0]] + new_right_part
+            new_rules[(uuid4(), loop_chain[-1][0])] = new_right_part
+        elif len(loop_chain) == 2:
+            # Саморекурсия
+            self_recursion[(loop_chain[0][1], loop_chain[0][0])] = loop_chain[0][2]
+        else:
+            raise ValueError("Такого быть не должно, так как даже саморекурсия имеет две составляющих")
     # TODO: после того, как все левые рекурсии будут пофикшены,
     #  необходимо проверить для каждой подцепочки циклов
     #  наличие альтернативных выходов из цикла
@@ -285,7 +333,7 @@ def transform_left_recursion_rules(
     #     next_new_right_parts = []
 
     # print(*new_rules.items(), sep='\n')
-    return new_rules, old_rules
+    return new_rules, old_rules, self_recursion
 
 
 # def sort_no_terminal_rules(raw_rules: dict[tuple[UUID, int], list[int]]) -> RAW_RULES_TYPE:
@@ -343,25 +391,59 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
         print("------------", len(will_change), len(not_change))
         assert len(will_change) + len(not_change) == len(middle_rules), "Ошибка в функции разделения на правила, " \
                                                                         "которые нужно изменять и те, которые не нужно"
-        looped, not_looped, resolving_after_loop = find_left_loops(will_change, not_change)
+        looped, not_looped, resolving_after_loop = find_left_loops(will_change, not_change, START_STATES)
         assert len(looped) + len(not_looped) + len(resolving_after_loop) >= len(will_change), \
             "количество зацикленных цепочек, не зацикленных цепочек и нерешённых цепочек в сумме не должно превышать " \
             "количество цепочек, которое должно быть изменено"
 
-        transformed_not_looped_rules = transform_no_looping_rules(not_looped)
-        assert len(not_looped) == len(
-            transformed_not_looped_rules), "Количество незацикленных цепочек и преобразованных " \
-                                           "незацикленных цепочек должно совпадать"
+        # transformed_not_looped_rules = transform_no_looping_rules(not_looped)
+        # assert len(not_looped) == len(
+        #     transformed_not_looped_rules), "Количество незацикленных цепочек и преобразованных " \
+        #                                    "незацикленных цепочек должно совпадать"
         # print(*transformed_not_looped_rules.items(), sep='\n')
         # print("===================", len(transformed_not_looped_rules))
 
-        yourself_recursions, remove_rules = transform_left_recursion_rules(looped)
-        assert len(looped) == len(yourself_recursions), "количество циклов должно совпадать " \
-                                                        "с количеством полученных саморекурсий"
+        new_yourself_recursions, remove_rules, old_yourself_recursions = transform_left_recursion_rules(looped)
+        new_factorization_recursion_rules: GROUPED_RULES_TYPE
+        new_factorization_recursion_rules, NO_TERMINALS = grammar_factorization(
+            new_yourself_recursions | old_yourself_recursions)
+
+        remove_rules |= set(new_yourself_recursions) | set(old_yourself_recursions)
+        new_factorization_rules: RAW_RULES_TYPE = dict()
+        new_self_recursion_rules: RAW_RULES_TYPE = dict()
+        for no_terminal, rules_set in new_factorization_recursion_rules.items():
+            for rule in rules_set:
+                if rule[0] == no_terminal:
+                    new_self_recursion_rules[(uuid4(), no_terminal)] = rule
+                else:
+                    new_factorization_rules[(uuid4(), no_terminal)] = rule
+
+        print()
+        # assert len(looped) == len(yourself_recursions), "количество циклов должно совпадать " \
+        #                                                 "с количеством полученных саморекурсий"
         # print("*******************", len(yourself_recursions))
         # print(*yourself_recursions.items(), sep='\n')
-        resolved_yourself_recursions, NO_TERMINALS = resolved_yourself_recursion(
-            yourself_recursions, transformed_not_looped_rules | not_change)
+
+        # TODO: По-хорошему, перед решением саморекурсии
+        #  (т.е. перед созданием новых нетерминалов)
+        #  необходимо произвести факторизацию грамматики
+        middle_rules = {key: val for key, val in (middle_rules | new_factorization_rules).items() if
+                        key not in remove_rules}
+        resolved_yourself_recursions, NO_TERMINALS = resolved_yourself_recursion(new_self_recursion_rules, middle_rules)
+
+        middle_rules = middle_rules | {
+            (_good_uuid, no_term): rule
+            for [uuid, no_term], rule in resolved_yourself_recursions.items()
+            if any(
+                no_term == old_no_term and tuple(rule) == tuple(old_rule)
+                for [good_uuid, old_no_term], old_rule in middle_rules.items()
+                if (_good_uuid := good_uuid)
+
+            ) or (_good_uuid := uuid)
+        }
+        remove_rules |= set(new_self_recursion_rules)
+        middle_rules = {key: val for key, val in middle_rules.items() if key not in remove_rules}
+
         # print("-------------------", len(resolved_yourself_recursions))
         # print(*resolved_yourself_recursions.items(), sep='\n')
         # print("*******************")
@@ -369,58 +451,63 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
         # print(*ff.items(), sep='\n')
         # print("--------------")
 
-        looped_after_resolution, not_looped_after_resolution, resolving_after_loop_after_resolution = find_left_loops(
-            _resolving_after_loop := {
-                (uuid, no_terminal): list(right_rule_part)
-                for rule_path in resolving_after_loop
-                for [no_terminal, uuid, right_rule_part] in rule_path
-                if right_rule_part is not None and (uuid, no_terminal) not in remove_rules
-
-            },
-            {
-                key: val
-                for key, val in
-                (not_change | transformed_not_looped_rules | resolved_yourself_recursions).items()
-                if key not in remove_rules
-            }
-        )
-        assert len(looped_after_resolution) == 0, "После второй итерации не должно оставаться зацикленных цепочек," \
-                                                  f" а их обнаружено {len(looped_after_resolution)}. " \
-                                                  f"Скорее всего какая-то ошибка в формировании грамматики"
-        assert len(resolving_after_loop_after_resolution) == 0, "После второй итерации не должно оставаться" \
-                                                                " не решённых цепочек," \
-                                                                f" а их обнаружено " \
-                                                                f"{len(resolving_after_loop_after_resolution)}. " \
-                                                                f"Скорее всего какая-то ошибка в формировании грамматики"
-        transformed_rules_after_resolve = transform_no_looping_rules(not_looped_after_resolution)
-        # print("===================",
-        #       len(looped_after_resolution),
-        #       len(not_looped_after_resolution),
-        #       len(resolving_after_loop_after_resolution),
-        #       len(raw_rules_dict))
-        # print(*looped_after_resolution, sep="\n")
-        # print("--------------")
-        # print(*not_looped_after_resolution, sep="\n")
-        # print("--------------")
-        # print(*resolving_after_loop_after_resolution, sep="\n")
-        # print("--------------")
-        transform_all_rules = {
-            key: val
-            for key, val in
-            (not_change | transformed_not_looped_rules
-             | resolved_yourself_recursions | transformed_rules_after_resolve).items()
-            if key not in remove_rules
-        }
-        middle_rules = transform_all_rules
+        # looped_after_resolution, not_looped_after_resolution, resolving_after_loop_after_resolution = find_left_loops(
+        #     _resolving_after_loop := {
+        #         (uuid, no_terminal): list(right_rule_part)
+        #         for rule_path in resolving_after_loop
+        #         for [no_terminal, uuid, right_rule_part] in rule_path
+        #         if right_rule_part is not None and (uuid, no_terminal) not in remove_rules
+        #
+        #     },
+        #     {
+        #         key: val
+        #         for key, val in
+        #         (not_change | transformed_not_looped_rules | resolved_yourself_recursions).items()
+        #         if key not in remove_rules
+        #     }
+        # )
+        # assert len(looped_after_resolution) == 0, "После второй итерации не должно оставаться зацикленных цепочек," \
+        #                                           f" а их обнаружено {len(looped_after_resolution)}. " \
+        #                                           f"Скорее всего какая-то ошибка в формировании грамматики"
+        # assert len(resolving_after_loop_after_resolution) == 0, "После второй итерации не должно оставаться" \
+        #                                                         " не решённых цепочек," \
+        #                                                         f" а их обнаружено " \
+        #                                                         f"{len(resolving_after_loop_after_resolution)}. " \
+        #                                                         f"Скорее всего какая-то ошибка в формировании грамматики"
+        # transformed_rules_after_resolve = transform_no_looping_rules(not_looped_after_resolution)
+        # # print("===================",
+        # #       len(looped_after_resolution),
+        # #       len(not_looped_after_resolution),
+        # #       len(resolving_after_loop_after_resolution),
+        # #       len(raw_rules_dict))
+        # # print(*looped_after_resolution, sep="\n")
+        # # print("--------------")
+        # # print(*not_looped_after_resolution, sep="\n")
+        # # print("--------------")
+        # # print(*resolving_after_loop_after_resolution, sep="\n")
+        # # print("--------------")
+        # transform_all_rules = {
+        #     key: val
+        #     for key, val in
+        #     (not_change | transformed_not_looped_rules
+        #      | resolved_yourself_recursions | transformed_rules_after_resolve).items()
+        #     if key not in remove_rules
+        # }
+        # middle_rules = transform_all_rules
         will_change, not_change = first_no_terminal_division(middle_rules)
+        # looped, not_looped, resolving_after_loop = find_left_loops(will_change, not_change, START_STATES)
+        print("------------", len(will_change), len(not_change), len(middle_rules))
+        # print(*will_change.items(), sep='\n')
+        # print("------------")
+        # print(*not_change.items(), sep='\n')
+        assert loop_counter < 10, "Похоже грамматика зациклилась"
+        if len(looped) == 0 and len(resolving_after_loop) == 0:
+            break
 
-    print("------------", len(will_change), len(not_change))
-    # print(*will_change.items(), sep='\n')
-    # print("------------")
-    # print(*not_change.items(), sep='\n')
-    assert loop_counter < 10, "Похоже грамматика зациклилась"
 
-    return transform_all_rules, NO_TERMINALS
+    factorized_rules, NO_TERMINALS = grammar_factorization(middle_rules)
+
+    return factorized_rules, NO_TERMINALS
 
 
 def group_factorization(
@@ -483,22 +570,33 @@ def group_factorization(
         if len(val) == 1:
             local_new_rules[no_terminal] = local_new_rules.get(no_terminal, set()) | val
         elif len(val) > 1:
-
-            res_new_rules, old_rules, NO_TERMINALS = group_factorization(
-                no_terminal,
-                val,
-                global_new_rules=global_new_rules,
-                old_rules=old_rules,
-                _deep=_deep + 1
-            )
-            local_new_rules = res_new_rules | { key: val | res_new_rules.get(key, set()) for key, val in  local_new_rules.items()}
+            unary_val = []
+            plural_vals = []
+            first_lexeme = [i[0] for i in val]
+            for i in set(first_lexeme):
+                if first_lexeme.count(i) == 1:
+                    unary_val += [lexemes for lexemes in val if lexemes[0] == i]
+                else:
+                    plural_vals.append([lexemes for lexemes in val if lexemes[0] == i])
+            local_new_rules[no_terminal] = local_new_rules.get(no_terminal, set()) | set(unary_val)
+            for plural_val in plural_vals:
+                res_new_rules, old_rules, NO_TERMINALS = group_factorization(
+                    no_terminal,
+                    set(plural_val),
+                    global_new_rules=global_new_rules,
+                    old_rules=old_rules,
+                    _deep=_deep + 1
+                )
+                local_new_rules = res_new_rules | {key: val | res_new_rules.get(key, set()) for key, val in
+                                                   local_new_rules.items()}
         else:
-            local_new_rules[no_terminal] =  local_new_rules.get(no_terminal, set()) |  {(OPTIONAL_BLANKS_ENUM(None),)}
+            local_new_rules[no_terminal] = local_new_rules.get(no_terminal, set()) | {(OPTIONAL_BLANKS_ENUM(None),)}
             print(key, trigger_name, problem_trigger, val, no_terminal)
 
             # raise ValueError("Подумать, что делать, если оно пустое")
 
-    global_new_rules = local_new_rules | { key: val | local_new_rules.get(key, set()) for key, val in  global_new_rules.items()}
+    global_new_rules = local_new_rules | {key: val | local_new_rules.get(key, set()) for key, val in
+                                          global_new_rules.items()}
     return global_new_rules, old_rules, NO_TERMINALS
 
 
@@ -525,13 +623,13 @@ def grammar_factorization(raw_rules: RAW_RULES_TYPE) -> tuple[GROUPED_RULES_TYPE
     """
     global NO_TERMINALS
 
-    middle_rules, NO_TERMINALS = grammar_transform(raw_rules)
+    # middle_rules, NO_TERMINALS = grammar_transform(raw_rules)
     # print(middle_rules)
 
     middle_rules = {(uuid4(), no_terminal): {
         tuple(right_part) for right_part in recourse_optional_gen(*val)
     }
-                    for (_, no_terminal), val in middle_rules.items()}
+        for (_, no_terminal), val in raw_rules.items()}
     # print("^"*20 + ' ' + str(len(middle_rules)), *[f"{type(v)} {k}\t\t {v}" for (_, k), v in middle_rules.items()], "^"*20, sep='\n')
     # print('---------------------------------------------')
     grouped_rules: GROUP_TREE_TYPE = dict()
@@ -548,7 +646,7 @@ def grammar_factorization(raw_rules: RAW_RULES_TYPE) -> tuple[GROUPED_RULES_TYPE
         else:
             data, old_rules, NO_TERMINALS = group_factorization(key, rules, new_rules, old_rules)
             new_rules |= data
-    print('*'*20)
+    print('*' * 20)
     new_rules: GROUPED_RULES_TYPE = dict_chain(new_rules)
 
     return transform_longer_first_empty_rules(new_rules), NO_TERMINALS
@@ -558,7 +656,7 @@ def transform_longer_first_empty_rules(rules: GROUPED_RULES_TYPE) -> GROUPED_RUL
     global NO_TERMINALS
     for no_term, right_parts in rules.items():
         for rule in right_parts:
-            if rule[0] == OPTIONAL_BLANKS_ENUM(None) and len(rule) > 1 :
+            if rule[0] == OPTIONAL_BLANKS_ENUM(None) and len(rule) > 1:
                 rules[no_term] -= {rule}
                 rules[no_term] |= {rule[1:]}
     return rules
