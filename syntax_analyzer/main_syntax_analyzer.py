@@ -10,7 +10,7 @@ from syntax_analyzer.parsing.top_down import deterministic_top_down_parsing_buil
 from syntax_analyzer.rules.raw_rules import raw_rules_dict
 from syntax_analyzer.rules.to_LL1_grammar import RAW_RULES_TYPE
 
-NO_TERMINALS = no_terminals.get_no_terminals()
+NO_TERMINALS, get_clone_unique_id = no_terminals.get_no_terminals()
 
 
 class SyntaxAnalyzer(object):

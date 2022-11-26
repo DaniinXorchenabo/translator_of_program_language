@@ -10,6 +10,6 @@ __all__ = [
 ALL_LEXICAL = enum.Enum(
     'ALL_LEXICAL',
     {item: item
-     for dict_ in [keywords, chars, numerals, unary, binary, special_chars, [i.name for i in get_no_terminals()]]
+     for dict_ in [keywords, chars, numerals, unary, binary, special_chars, [i.name for i in get_no_terminals()[0]]]
      for item in dict_}
 )

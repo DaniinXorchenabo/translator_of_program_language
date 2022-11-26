@@ -8,7 +8,7 @@ from syntax_analyzer.lexical.terminals import OPTIONAL_BLANKS_ENUM, BLANKS_ENUM,
     BINARY_ENUM
 from syntax_analyzer.lexical import no_terminals
 
-NO_TERMINALS = NO_T = no_terminals.get_no_terminals()
+NO_TERMINALS, get_clone_unique_id = NO_T, _ = no_terminals.get_no_terminals()
 
 
 def recourse_gen(*data: list[Any] | str | enum.Enum | Type[enum.Enum], _const_data_prefix=None):
@@ -72,7 +72,7 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
 
     tM_dict={
         # (uuid4(), NO_T.tM): [NO_T.tD, O_BL, NO_T.tB],  # , O_BL
-        (uuid4(), NO_T.tM): [NO_T.tD, A.BEGIN],  # , O_BL
+        (uuid4(), NO_T.tM): [NO_T.tD, NO_T.tR, A.BEGIN],  # , O_BL
 
     },
 
@@ -87,10 +87,14 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
     },
     tV_dict={
         (uuid4(), NO_T.tV): [NO_T.tD, BL, A(','), CHARS_ENUM],
-        (uuid4(), NO_T.tV): [NO_T.tD, BL, A.PASS, CHARS_ENUM],
+        # (uuid4(), NO_T.tV): [NO_T.tD, BL, A.PASS, CHARS_ENUM],
         (uuid4(), NO_T.tV): [CHARS_ENUM],
-        (uuid4(), NO_T.tV): [NO_T.tV, A.OF],
-    }
+        # (uuid4(), NO_T.tV): [NO_T.tV, A.OF],
+    },
+
+    tR_dict={
+        (uuid4(), NO_T.tR): [CHARS_ENUM],
+    },
 
     # tD_dict={
     #     (uuid4(), NO_T.tD): [A.VAR, BL, NO_T.tDv, A(":"), A.INTEGER, O_BL, A(';')],  # , O_BL

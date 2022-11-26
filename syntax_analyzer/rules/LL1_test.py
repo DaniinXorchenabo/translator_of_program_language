@@ -5,10 +5,11 @@ from typing import Type
 from syntax_analyzer.lexical.all_lexems import ALL_LEXICAL
 from syntax_analyzer.lexical.terminals import TERMINALS, terminals, OPTIONAL_BLANKS_ENUM
 from syntax_analyzer.rules.raw_rules import raw_rules_dict
-from syntax_analyzer.rules.to_LL1_grammar import grammar_factorization, RAW_RULES_TYPE, GROUPED_RULES_TYPE
+from syntax_analyzer.rules.to_LL1_grammar import grammar_factorization, RAW_RULES_TYPE, GROUPED_RULES_TYPE, \
+    grammar_transform
 from syntax_analyzer.lexical import no_terminals
 
-NO_TERMINALS = no_terminals.get_no_terminals()
+NO_TERMINALS, get_clone_unique_id = no_terminals.get_no_terminals()
 
 __all__ = ['ll1_test']
 
@@ -114,7 +115,7 @@ def next_f(
 def ll1_test(raw_rules: RAW_RULES_TYPE):
     global NO_TERMINALS
 
-    testing_rules, NO_TERMINALS = grammar_factorization(raw_rules)
+    testing_rules, NO_TERMINALS = grammar_transform(raw_rules)
     print(testing_rules)
     print('LL1 test start')
     res_1 = dict()
@@ -161,13 +162,14 @@ def ll1_test(raw_rules: RAW_RULES_TYPE):
     print(set(first_f_dict.keys()) - set(next_f_dict.keys()))
     print(set(next_f_dict.keys()) - set(first_f_dict.keys()))
     for no_terminal,  rules in testing_rules.items():
-        if len(first_f_dict[no_terminal] & next_f_dict[no_terminal]) > 0:
-            correct_2 += 1
-            print(f"{no_terminal.name}, {no_terminal.value}",
-                  f"ПЕРВ({no_terminal}) = {first_f_dict[no_terminal]}",
-                  f"СЛЕД({no_terminal}) = {next_f_dict[no_terminal]}",
-                  f"ПЕРВ() & СЛЕД() = {first_f_dict[no_terminal] & next_f_dict[no_terminal]}",
-                  sep='\n\t')
+        if any(i[0] == OPTIONAL_BLANKS_ENUM(None) for i in rules):
+            if len(first_f_dict[no_terminal] & next_f_dict[no_terminal]) > 0:
+                correct_2 += 1
+                print(f"{no_terminal.name}, {no_terminal.value}",
+                      f"ПЕРВ({no_terminal}) = {first_f_dict[no_terminal]}",
+                      f"СЛЕД({no_terminal}) = {next_f_dict[no_terminal]}",
+                      f"ПЕРВ() & СЛЕД() = {first_f_dict[no_terminal] & next_f_dict[no_terminal]}",
+                      sep='\n\t')
 
     assert correct_2 == 0, f"Грамматика не LL1 по второму правилу. Обнаружено {correct_2} конфликтов"
     print("Грамматика удовлетворяет второму правилу LL1")

@@ -63,8 +63,16 @@ def get_no_terminals():
         NO_TERMINALS.__bases__ = (_first_NO_TERMINALS, enum.Enum)
         NO_TERMINALS = enum.unique(NO_TERMINALS)
         _NO_TERMINALS = NO_TERMINALS
-    return NO_TERMINALS
+
+
+    def get_clone_unique_id():
+        global id_counter
+        id_counter += 1
+        return str(id_counter).rjust(4, "0")
+
+    return NO_TERMINALS, get_clone_unique_id
 
 
 _first_NO_TERMINALS: Type[enum.Enum] | None = None
 _NO_TERMINALS = None
+id_counter = 0

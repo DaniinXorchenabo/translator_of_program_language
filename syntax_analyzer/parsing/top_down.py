@@ -11,7 +11,7 @@ from syntax_analyzer.lexical import no_terminals
 from syntax_analyzer.rules.to_LL1_grammar import grammar_transform, grammar_factorization, RAW_RULES_TYPE, \
     GROUPED_RULES_TYPE
 
-NO_TERMINALS = no_terminals.get_no_terminals()
+NO_TERMINALS, get_clone_unique_id = no_terminals.get_no_terminals()
 
 
 class States(enum.Enum):
