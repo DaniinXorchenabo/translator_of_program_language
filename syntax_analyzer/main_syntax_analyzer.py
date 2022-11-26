@@ -4,7 +4,7 @@ from typing import Type
 
 from syntax_analyzer.lexical.lexical_analyzer import lexical_analyzer
 from syntax_analyzer.lexical import no_terminals
-from syntax_analyzer.lexical.terminals import TERMINALS
+from syntax_analyzer.lexical.terminals import TERMINALS, OPTIONAL_BLANKS_ENUM
 from syntax_analyzer.parsing.top_down import deterministic_top_down_parsing_builder, States, ShopMarker, InputAction, \
     ShopAction, SHOP_MACHINE_TYPE, Delta, DeltaDisplay
 from syntax_analyzer.rules.raw_rules import raw_rules_dict
@@ -107,14 +107,22 @@ class SyntaxAnalyzer(object):
         elif inspect.isclass(shop_symbol) \
                 and (w_dict := self.grammar_predicates_shop_enum.get(input_char)) is not None \
                 and (possible_v := w_dict.get(shop_symbol)) is not None:
-            return current, [i for i in possible_v if i.state == current_state][0]
+
+            test_res = [i for i in possible_v if i.state == current_state]
+            if len(test_res) != 1:
+                raise SyntaxError("Ошибка недетерминированности")
+
+            return current, test_res[0]
 
         elif inspect.isclass(input_char) is False and inspect.isclass(shop_symbol):
             # в правилах указаны только конкретные случаи для магазина, однако в магазине находится множество
             # possible = self.grammar_predicates[input_char]
             for key, values in self.grammar_predicates_finder[input_char].items():
                 if isinstance(key, shop_symbol):
-                    return current, [i for i in values if i.state == current_state][0]
+                    test_res = [i for i in values if i.state == current_state]
+                    if len(test_res) != 1:
+                        raise SyntaxError("Ошибка недетерминированности")
+                    return current, test_res[0]
 
         enums = {i.input_char for i in self.grammar_enums.keys()}
         for tested_enum in enums:
@@ -144,7 +152,10 @@ class SyntaxAnalyzer(object):
                         break
                 else:
                     raise ValueError()
-        return current, [i for i in variants if i.state == current_state][0]
+        test_res = [i for i in variants if i.state == current_state]
+        if len(test_res) != 1:
+            raise SyntaxError("Ошибка недетерминированности")
+        return current, test_res[0]
 
 
 

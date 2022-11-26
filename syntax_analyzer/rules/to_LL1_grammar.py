@@ -1,9 +1,12 @@
 from __future__ import annotations
+
+import enum
+import inspect
 from typing import Type
 from uuid import UUID, uuid4
 
 from syntax_analyzer.lexical.all_lexems import ALL_LEXICAL
-from syntax_analyzer.lexical.terminals import OPTIONAL_BLANKS_ENUM
+from syntax_analyzer.lexical.terminals import OPTIONAL_BLANKS_ENUM, TERMINALS, terminals
 from syntax_analyzer.rules.raw_rules import raw_rules_dict, recourse_optional_gen, START_STATES
 from syntax_analyzer.lexical import no_terminals
 
@@ -611,6 +614,107 @@ def transform_longer_first_empty_rules(rules: GROUPED_RULES_TYPE) -> GROUPED_RUL
                 rules[no_term] -= {rule}
                 rules[no_term] |= {rule[1:]}
     return rules
+
+
+ARGS = NO_TERMINALS | ALL_LEXICAL | Type[enum.Enum]
+def first_f(
+        symbol: ARGS,
+        rules: GROUPED_RULES_TYPE,
+        symbol_buf_first: set[ARGS] | None = None,
+        symbol_buf_second: set[ARGS] | None = None,
+        is_calculated_first: dict[ARGS, set[ARGS]] | None = None,
+        is_calculated_second: dict[ARGS, set[ARGS]] | None = None,
+) -> set[TERMINALS | Type[enum.Enum]]:
+    is_calculated_first = is_calculated_first or dict()
+    is_calculated_second = is_calculated_second or dict()
+    symbol_buf_first = symbol_buf_first or set()
+    symbol_buf_second = symbol_buf_second or set()
+
+    if symbol in is_calculated_first:
+        return is_calculated_first[symbol]
+
+    if (hasattr(symbol, "name") and symbol.name in terminals) \
+            or (inspect.isclass(symbol) and issubclass(symbol, enum.Enum)):
+        is_calculated_first[symbol] = {symbol}
+        return {symbol}
+
+    if symbol == OPTIONAL_BLANKS_ENUM(None):
+        print('empty WARNING')
+        is_calculated_first[symbol] = {symbol}
+        return {symbol}
+
+    symbol_buf_first.add(symbol)
+    res: set[TERMINALS | Type[enum.Enum]] = set()
+    # print(rules)
+    for right_part in rules[symbol]:
+        if right_part[0] not in symbol_buf_first:
+            res |= first_f(
+                right_part[0],
+                rules,
+                symbol_buf_first=symbol_buf_first.copy(),
+                symbol_buf_second=symbol_buf_second,
+                is_calculated_first=is_calculated_first,
+                is_calculated_second=is_calculated_second,
+            )
+    res -= {OPTIONAL_BLANKS_ENUM(None)}
+    is_calculated_first[symbol] =  res
+    return res
+
+
+def next_f(
+        symbol: ARGS,
+        rules: GROUPED_RULES_TYPE,
+        symbol_buf_first: set[ARGS] | None = None,
+        symbol_buf_second: set[ARGS] | None = None,
+        is_calculated_first: dict[ARGS, set[ARGS]] | None = None,
+        is_calculated_second: dict[ARGS, set[ARGS]] | None = None,
+) -> set[TERMINALS | Type[enum.Enum]]:
+    is_calculated_first = is_calculated_first or dict()
+    is_calculated_second = is_calculated_second or dict()
+    symbol_buf_first = symbol_buf_first or set()
+    symbol_buf_second = symbol_buf_second or set()
+
+    if symbol in is_calculated_second:
+        return is_calculated_second[symbol]
+    assert symbol != OPTIONAL_BLANKS_ENUM(None)
+
+
+    symbol_buf_second.add(symbol)
+    res: set[TERMINALS | Type[enum.Enum]] = set()
+    for no_terminal, right_parts in rules.items():
+        for right_part in right_parts:
+            find = False
+            for ind, char in enumerate(right_part):
+                if find is True and char != OPTIONAL_BLANKS_ENUM(None):
+                    find = False
+                    res |= first_f(
+                        char,
+                        rules,
+                        symbol_buf_first=symbol_buf_first,
+                        symbol_buf_second=symbol_buf_second,
+                        is_calculated_first=is_calculated_first,
+                        is_calculated_second=is_calculated_second,
+                    )
+                    assert OPTIONAL_BLANKS_ENUM(None) not in res
+                elif find is True and char == OPTIONAL_BLANKS_ENUM(None):
+                    continue
+                if char == symbol:
+                    find = True
+            if find is True and (no_terminal not in symbol_buf_second ):
+                res |= next_f(
+                    no_terminal,
+                    rules,
+                    symbol_buf_first=symbol_buf_first,
+                    symbol_buf_second=symbol_buf_second.copy(),
+                    is_calculated_first=is_calculated_first,
+                    is_calculated_second=is_calculated_second,
+                )
+    is_calculated_second[symbol] = res
+    return res
+
+
+
+
 
 
 if __name__ == '__main__':

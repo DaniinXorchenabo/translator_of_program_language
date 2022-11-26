@@ -72,44 +72,45 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
 
     tM_dict={
         # (uuid4(), NO_T.tM): [NO_T.tD, O_BL, NO_T.tB],  # , O_BL
-        (uuid4(), NO_T.tM): [NO_T.tD, NO_T.tR, A.BEGIN],  # , O_BL
+        (uuid4(), NO_T.tM): [NO_T.tD],
+        # (uuid4(), NO_T.tM): [NO_T.tD, NO_T.tR, A.BEGIN],  # , O_BL
 
-    },
-
-    tD_dict={
-        (uuid4(), NO_T.tD): [NO_T.tDv, A(":")],
-        # tD, BL, A.INTEGER A(":") CHARS_ENUM
-    },
-    tDv_dict={
-        (uuid4(), NO_T.tDv): [NO_T.tV, A.INTEGER],
-        (uuid4(), NO_T.tDv): [NO_T.tV, BL, A.INTEGER],
-
-    },
-    tV_dict={
-        (uuid4(), NO_T.tV): [NO_T.tD, BL, A(','), CHARS_ENUM],
-        # (uuid4(), NO_T.tV): [NO_T.tD, BL, A.PASS, CHARS_ENUM],
-        (uuid4(), NO_T.tV): [CHARS_ENUM],
-        # (uuid4(), NO_T.tV): [NO_T.tV, A.OF],
-    },
-
-    tR_dict={
-        (uuid4(), NO_T.tR): [CHARS_ENUM],
     },
 
     # tD_dict={
-    #     (uuid4(), NO_T.tD): [A.VAR, BL, NO_T.tDv, A(":"), A.INTEGER, O_BL, A(';')],  # , O_BL
+    #     (uuid4(), NO_T.tD): [NO_T.tDv, A(":")],
+    #     # tD, BL, A.INTEGER A(":") CHARS_ENUM
     # },
-    #
     # tDv_dict={
-    #     (uuid4(), NO_T.tDv): [NO_T.tV],  # , O_BL
-    #     # (uuid4(), NO_T.tDv): [NO_T.tV, O_BL, A(','), O_BL, NO_T.tDv],
-    #     (uuid4(), NO_T.tDv): [NO_T.tV, A(','), NO_T.tDv],
+    #     (uuid4(), NO_T.tDv): [NO_T.tV, A.INTEGER],
+    #     (uuid4(), NO_T.tDv): [NO_T.tV, BL, A.INTEGER],
+    #
     # },
     # tV_dict={
-    #     (uuid4(), NO_T.tV): [CHARS_ENUM, NO_T.tV],
+    #     (uuid4(), NO_T.tV): [NO_T.tD, BL, A(','), CHARS_ENUM],
+    #     # (uuid4(), NO_T.tV): [NO_T.tD, BL, A.PASS, CHARS_ENUM],
     #     (uuid4(), NO_T.tV): [CHARS_ENUM],
-    #     (uuid4(), NO_T.tV): [NO_T.tV],
+    #     # (uuid4(), NO_T.tV): [NO_T.tV, A.OF],
     # },
+    #
+    # tR_dict={
+    #     (uuid4(), NO_T.tR): [CHARS_ENUM],
+    # },
+
+    tD_dict={
+        (uuid4(), NO_T.tD): [A.VAR, BL, NO_T.tDv, A(":"), O_BL, A.INTEGER, O_BL, A(';')],  # , O_BL
+    },
+
+    tDv_dict={
+        (uuid4(), NO_T.tDv): [NO_T.tV, O_BL],  # , O_BL
+        # (uuid4(), NO_T.tDv): [NO_T.tV, O_BL, A(','), O_BL, NO_T.tDv],
+        (uuid4(), NO_T.tDv): [NO_T.tV, O_BL, A(','), O_BL, NO_T.tDv],
+    },
+    tV_dict={
+        (uuid4(), NO_T.tV): [CHARS_ENUM, NO_T.tV],
+        (uuid4(), NO_T.tV): [CHARS_ENUM],
+        # (uuid4(), NO_T.tV): [NO_T.tV],
+    },
     # tB_dict={
     #     (uuid4(), NO_T.tB): [A.BEGIN, BL, NO_T.tBr,  A.END],
     # },
