@@ -137,7 +137,8 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
     },
     tW_dict={
         # (uuid4(), NO_T.tW): [A.WRITE, O_BL, A('('), O_BL, NO_T.tDv, O_BL, A(')')],
-        (uuid4(), NO_T.tW): [A.WRITE,O_BL, A('('), O_BL,NO_T.tV,O_BL, A(')')],
+        # (uuid4(), NO_T.tW): [A.WRITE,O_BL, A('('), O_BL,NO_T.tV,O_BL, A(')')],
+        (uuid4(), NO_T.tW): [A.WRITE,O_BL, A('('), O_BL,NO_T.tE,O_BL, A(')')],
 # (uuid4(), NO_T.tW): [A.WRITE, A('('), BL, A(')')],
 
     },
@@ -161,6 +162,7 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
     tSe_dict={
         (uuid4(), NO_T.tSe): [A('('), O_BL, NO_T.tE, O_BL, A(')')],
         (uuid4(), NO_T.tSe): [NO_T.tNum],
+        (uuid4(), NO_T.tSe): [NO_T.tV],
         (uuid4(), NO_T.tSe): [NO_T.tSe,  NO_T.tBo, O_BL, NO_T.tSe],
     },
     #
