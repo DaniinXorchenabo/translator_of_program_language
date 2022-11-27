@@ -19,6 +19,36 @@ GROUP_TREE_TYPE = dict[NO_TERMINALS, GROUP_TREE_TYPE | set[tuple[ALL_LEXICAL | N
 GROUPED_RULES_TYPE = dict[NO_TERMINALS, set[tuple[NO_TERMINALS | ALL_LEXICAL | OPTIONAL_BLANKS_ENUM, ...]]]
 
 
+
+def syntax_tree_build(raw_rules: RAW_RULES_TYPE, StartStates: set[NO_TERMINALS]):
+    tree: dict[int, RAW_RULES_TYPE] = dict()
+    parents: RAW_RULES_TYPE = {
+        key: val for key, val in raw_rules.items() if key[1] in StartStates
+    }
+
+    used: set[NO_TERMINALS  | ALL_LEXICAL | OPTIONAL_BLANKS_ENUM] = set()
+    tree_level_counter = 0
+    while bool(parents):
+        tree[tree_level_counter] = parents
+        child: RAW_RULES_TYPE = dict()
+        for [uuid, no_term], rule in parents.items():
+
+            next_no_terms = {i for i in rule if isinstance(i, no_terminals._first_NO_TERMINALS)}
+            print(next_no_terms)
+            next_no_terms -= used
+            child |= {(ch_uuid, ch_no_term): ch_rules
+                     for (ch_uuid, ch_no_term), ch_rules in raw_rules.items()
+                     if ch_no_term in next_no_terms
+                     }
+            print(child.keys())
+            used |= next_no_terms
+        parents = child
+        tree_level_counter += 1
+    print(*tree.items(), sep='\n')
+    return tree
+
+
+
 def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE, StartStates: set[NO_TERMINALS]) \
         -> tuple[RULES_SET_TYPE, RULES_SET_TYPE, RULES_SET_TYPE]:
     """
@@ -37,67 +67,82 @@ def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE, Start
     closed_chains: list = []
     resolve_after_loop: list = []
     used = set()
+    for min_level, rules in syntax_tree_build(raw_rules, StartStates).items():
+        print('=================================', min_level)
+        for [uuid, trigger_target], trigger_target_right in rules.items():
+            # if trigger_target in used:
+            #     continue
 
-    for [uuid, trigger_target], trigger_target_right in {
-        key: val for key, val in raw_rules.items() if key[1] in StartStates
-    }.items():
-        # if trigger_target in used:
-        #     continue
-
-        #
-        used.add(trigger_target)
-        current_targets: list[list[tuple[NO_TERMINALS, UUID, list[ALL_LEXICAL | NO_TERMINALS]]]] \
-            = [[(trigger_target, uuid, trigger_target_right)]]
-        next_targets: list[list[tuple[NO_TERMINALS, UUID, list[ALL_LEXICAL | NO_TERMINALS]]]] = []
-        # Происходит поиск в ширину по графу
-        while bool(current_targets):
-            for target in current_targets:
-                used.add(target[-1][0])
-                if target[-1][0] == trigger_target and len(target) > 1:
-                    # Если цепочка начинается и заканчивается одним и тем же нетерминалом
-                    # ? то считаем, что мы дошли до конца этой цепочки.
-                    # Это цикл
-                    target[-1] = target[-1][0], None, None
-                    closed_chains.append(target)
-                    continue
-                elif any(i[0] == target[-1][0] for ind, i in enumerate(target[:-1]) if (_ind := ind)):
-                    # Если один и тот же нетерминал встречается в одной последовательности,
-                    # То эта цепочка содержит цикл и должна будет решена после решения всех циклов.
-                    target[-1] = target[-1][0], None, None
-                    closed_chains.append(target[_ind:])
-                    resolve_after_loop.append(target[:])
-                    continue
-                else:
-                    # смотрим, имеет ли цепочка продолжение
-                    target_variants: list[
-                        list[tuple[ALL_LEXICAL | NO_TERMINALS, UUID, list[ALL_LEXICAL | NO_TERMINALS]]]] = []
-                    for target_variant, rules in (raw_rules | not_change).items():
-                        if target_variant[1] == target[-1][0]:
-                            next_target = [i[:] for i in target]
-                            next_target[-1] = next_target[-1][0], target_variant[0], rules[:]
-                            # next_target[-1][2] = i[2]
-
-                            target_variants.append(next_target + [(
-                                rules[0],  # Переходим к следующему элементу в дереве графа
-                                target_variant[0],
-                                # Это неправильные данные, их необходимо заменить (Это произойдёт на следёющей итерации цикла, когда только что созданный next_target станат target и когда для него выполнится  target_variant[1] == target[-1][0])
-                                rules[:]  # Это неправильные данные, их необходимо заменить
-                            )])
-                    if bool(target_variants):
-                        for i in target_variants:
-                            next_targets.append(i)
-
+            #
+            if trigger_target in used:
+                continue
+            used.add(trigger_target)
+            current_targets: set[tuple[tuple[NO_TERMINALS, UUID, tuple[ALL_LEXICAL | NO_TERMINALS]], ...]] \
+                = {((trigger_target, uuid, tuple(trigger_target_right)),)}
+            next_targets: set[tuple[tuple[NO_TERMINALS, UUID, tuple[ALL_LEXICAL | NO_TERMINALS]]]] = set()
+            # Происходит поиск в ширину по графу
+            while bool(current_targets):
+                print(*current_targets, sep='\n')
+                for target in current_targets:
+                    used.add(target[-1][0])
+                    if target[-1][0] == trigger_target and len(target) > 1:
+                        # Если цепочка начинается и заканчивается одним и тем же нетерминалом
+                        # ? то считаем, что мы дошли до конца этой цепочки.
+                        # Это цикл
+                        target = (*target[:-1], (target[-1][0], None, None))
+                        closed_chains.append(target)
+                        continue
+                    elif any(i[0] == target[-1][0] for ind, i in enumerate(target[:-1]) if (_ind := ind)):
+                        # Если один и тот же нетерминал встречается в одной последовательности,
+                        # То эта цепочка содержит цикл и должна будет решена после решения всех циклов.
+                        target = (*target[:-1], (target[-1][0], None, None))
+                        closed_chains.append(target[_ind:])
+                        resolve_after_loop.append(target[:])
+                        continue
                     else:
-                        # добавляем символ завершения к текущей цепочке
-                        # TODO: проверить правильность этой строки
-                        next_target = [i[:] for i in target]
-                        # Исправляем некорректные данные, которые были записаны при добавлении.
-                        next_target[-1] = next_target[-1][0], None, None
-                        # next_targets.append(next_target)
-                        closed_chains.append(next_target)
+                        # смотрим, имеет ли цепочка продолжение
+                        target_variants: set[tuple[tuple[ALL_LEXICAL | NO_TERMINALS, UUID, list[ALL_LEXICAL | NO_TERMINALS]]]] = set()
+                        for target_variant, rules in (raw_rules | not_change).items():
+                            if target_variant[1] == target[-1][0]:
+                                next_target = list([i[:] for i in target])
+                                next_target[-1] = next_target[-1][0], target_variant[0], tuple(rules)
+                                next_target: tuple[tuple[NO_TERMINALS, UUID, tuple[ALL_LEXICAL | NO_TERMINALS]], ...] = tuple(next_target)
+                                # next_target[-1][2] = i[2]
 
-            current_targets = next_targets
-            next_targets = []
+                                target_variants.add((*(next_target), (
+                                    rules[0],  # Переходим к следующему элементу в дереве графа
+                                    target_variant[0],
+                                    # Это неправильные данные, их необходимо заменить (Это произойдёт на следёющей итерации цикла, когда только что созданный next_target станат target и когда для него выполнится  target_variant[1] == target[-1][0])
+                                    tuple(rules)  # Это неправильные данные, их необходимо заменить
+                                ),))
+                        if bool(target_variants):
+                            for i in target_variants:
+                                next_targets.add(i)
+                                # ind_ii = len(i) - 1
+                                # ii = i[-1]
+                                # # for ind_ii, ii in enumerate(i):
+                                # if True:
+                                #     for ind_iii, iii in enumerate(ii[2][1:], 1):
+                                #         if isinstance(iii, no_terminals._first_NO_TERMINALS):
+                                #             for [uuid, no_term], rules in {key: val for key, val in raw_rules.items() if
+                                #                                            key[1] == iii}.items():
+                                #                 next_targets.add((*i[ind_ii:], (
+                                #                                       no_term,
+                                #                                       uuid,
+                                #                                       tuple(rules)
+                                #                                   ),))
+
+                        else:
+                            # добавляем символ завершения к текущей цепочке
+                            # TODO: проверить правильность этой строки
+                            next_target = [tuple(i) for i in target]
+                            # Исправляем некорректные данные, которые были записаны при добавлении.
+                            next_target = (*next_target, (next_target[-1][0], None, None), )
+                            # next_targets.append(next_target)
+                            closed_chains.append(next_target)
+
+                current_targets = next_targets
+                next_targets = set()
 
     # print('^^^^^^^^', len(closed_chains))
     # print(*closed_chains, sep='\n')
@@ -106,6 +151,7 @@ def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE, Start
     loops = []
     no_loops = []
     for chain in closed_chains:
+        print(chain)
         if len(chain) != 1 and chain[0][0] == chain[-1][0]:
             chain = tuple(((i[0], i[1], tuple(i[2])) if i[2] is not None else i) for i in chain)
             loops.append(chain)
@@ -213,7 +259,7 @@ def resolved_yourself_recursion(
         _new_name = no_term_to_name[(uuid, no_terminal)]
 
         # new_rules[(uuid4(), NO_TERMINALS[_new_name])] = right_part[1:]
-        new_rules[(uuid4(), NO_TERMINALS[_new_name])] =(OPTIONAL_BLANKS_ENUM(None),)
+        new_rules[(uuid4(), NO_TERMINALS[_new_name])] = (OPTIONAL_BLANKS_ENUM(None),)
         new_rules[(uuid4(), NO_TERMINALS[_new_name])] = list(right_part[1:]) + [NO_TERMINALS[_new_name]]
         for [uuid_, no_terminal_], right_part_ in resolved_rules.items():
             if no_terminal == no_terminal_ and right_part_[0] != no_terminal:
@@ -309,8 +355,9 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
     :return:
     """
     global NO_TERMINALS
-
+    print('^^^', *raw_rules.items(), sep='\n')
     middle_rules = raw_rules.copy()
+    print('^^^', *middle_rules.items(), sep='\n')
     transform_all_rules = raw_rules.copy()
     will_change, not_change = first_no_terminal_division(middle_rules)
     loop_counter = 0
@@ -320,6 +367,8 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
         print("------------", len(will_change), len(not_change))
         assert len(will_change) + len(not_change) == len(middle_rules), "Ошибка в функции разделения на правила, " \
                                                                         "которые нужно изменять и те, которые не нужно"
+        will_change = middle_rules
+        not_change = dict()
         looped, not_looped, resolving_after_loop = find_left_loops(will_change, not_change, START_STATES)
         # assert len(looped) + len(not_looped) + len(resolving_after_loop) >= len(will_change), \
         #     "количество зацикленных цепочек, не зацикленных цепочек и нерешённых цепочек в сумме не должно превышать " \
@@ -353,12 +402,19 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
         # print("*******************", len(yourself_recursions))
         # print(*yourself_recursions.items(), sep='\n')
 
-        # TODO: По-хорошему, перед решением саморекурсии
-        #  (т.е. перед созданием новых нетерминалов)
-        #  необходимо произвести факторизацию грамматики
+        _t = [(no_term, rule, uuid) for [uuid, no_term], rule, in middle_rules.items() if
+              OPTIONAL_BLANKS_ENUM(None) in rule and len(rule) > 1]
+        assert _t == [], f'{_t}'
+
         middle_rules = {key: val for key, val in (middle_rules | new_factorization_rules).items() if
                         key not in remove_rules}
-        resolved_yourself_recursions, old_recursion_rules, NO_TERMINALS = resolved_yourself_recursion(new_self_recursion_rules, middle_rules)
+
+        _t = [(no_term, rule, uuid) for [uuid, no_term], rule, in middle_rules.items() if
+              OPTIONAL_BLANKS_ENUM(None) in rule and len(rule) > 1]
+        assert _t == [], f'{_t}'
+
+        resolved_yourself_recursions, old_recursion_rules, NO_TERMINALS = resolved_yourself_recursion(
+            new_self_recursion_rules, middle_rules)
 
         remove_rules |= old_recursion_rules
 
@@ -375,59 +431,12 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
         remove_rules |= set(new_self_recursion_rules)
         middle_rules = {key: val for key, val in middle_rules.items() if key not in remove_rules}
 
-        # print("-------------------", len(resolved_yourself_recursions))
-        # print(*resolved_yourself_recursions.items(), sep='\n')
-        # print("*******************")
-
-        # print(*ff.items(), sep='\n')
-        # print("--------------")
-
-        # looped_after_resolution, not_looped_after_resolution, resolving_after_loop_after_resolution = find_left_loops(
-        #     _resolving_after_loop := {
-        #         (uuid, no_terminal): list(right_rule_part)
-        #         for rule_path in resolving_after_loop
-        #         for [no_terminal, uuid, right_rule_part] in rule_path
-        #         if right_rule_part is not None and (uuid, no_terminal) not in remove_rules
-        #
-        #     },
-        #     {
-        #         key: val
-        #         for key, val in
-        #         (not_change | transformed_not_looped_rules | resolved_yourself_recursions).items()
-        #         if key not in remove_rules
-        #     }
-        # )
-        # assert len(looped_after_resolution) == 0, "После второй итерации не должно оставаться зацикленных цепочек," \
-        #                                           f" а их обнаружено {len(looped_after_resolution)}. " \
-        #                                           f"Скорее всего какая-то ошибка в формировании грамматики"
-        # assert len(resolving_after_loop_after_resolution) == 0, "После второй итерации не должно оставаться" \
-        #                                                         " не решённых цепочек," \
-        #                                                         f" а их обнаружено " \
-        #                                                         f"{len(resolving_after_loop_after_resolution)}. " \
-        #                                                         f"Скорее всего какая-то ошибка в формировании грамматики"
-        # transformed_rules_after_resolve = transform_no_looping_rules(not_looped_after_resolution)
-        # # print("===================",
-        # #       len(looped_after_resolution),
-        # #       len(not_looped_after_resolution),
-        # #       len(resolving_after_loop_after_resolution),
-        # #       len(raw_rules_dict))
-        # # print(*looped_after_resolution, sep="\n")
-        # # print("--------------")
-        # # print(*not_looped_after_resolution, sep="\n")
-        # # print("--------------")
-        # # print(*resolving_after_loop_after_resolution, sep="\n")
-        # # print("--------------")
-        # transform_all_rules = {
-        #     key: val
-        #     for key, val in
-        #     (not_change | transformed_not_looped_rules
-        #      | resolved_yourself_recursions | transformed_rules_after_resolve).items()
-        #     if key not in remove_rules
-        # }
-        # middle_rules = transform_all_rules
         will_change, not_change = first_no_terminal_division(middle_rules)
+
         # looped, not_looped, resolving_after_loop = find_left_loops(will_change, not_change, START_STATES)
         print("------------", len(will_change), len(not_change), len(middle_rules))
+        will_change = middle_rules
+        not_change = dict()
         # print(*will_change.items(), sep='\n')
         # print("------------")
         # print(*not_change.items(), sep='\n')
@@ -435,8 +444,17 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
         if len(looped) == 0 and len(resolving_after_loop) == 0:
             break
 
+    print('^^^', *middle_rules.items(), sep='\n')
+
+    _t = [(no_term, rule, uuid) for [uuid, no_term], rule, in middle_rules.items() if
+          OPTIONAL_BLANKS_ENUM(None) in rule and len(rule) > 1]
+    assert _t == [], f'{_t}'
 
     factorized_rules, NO_TERMINALS = grammar_factorization(middle_rules)
+
+    _t = [(no_term, rule, rules) for no_term, rules, in factorized_rules.items() for rule in rules if
+          OPTIONAL_BLANKS_ENUM(None) in rule and len(rule) > 1]
+    assert _t == [], f'{_t}'
 
     new_factorized_rules = {
         NO_TERMINALS[key.name]: {
@@ -445,10 +463,14 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
                 for lexeme in rule
             )
             for rule in val}
-                            for key, val in factorized_rules.items()
+        for key, val in factorized_rules.items()
     }
     assert len(new_factorized_rules) == len(factorized_rules)
     factorized_rules = new_factorized_rules
+
+    _t = [(no_term, rule, rules) for no_term, rules, in factorized_rules.items() for rule in rules if
+          OPTIONAL_BLANKS_ENUM(None) in rule and len(rule) > 1]
+    assert _t == [], f'{_t}'
 
     return factorized_rules, NO_TERMINALS
 
@@ -503,7 +525,10 @@ def group_factorization(
     # print("+" * 10 + str(key), *[f"{len(k)} {k}    {v}" for k, v in new_dict.items()], "=" * 10, sep='\n')
 
     for problem_trigger, val in new_dict_with_hot_rules.items():
-        local_new_rules[key] = local_new_rules.get(key, set()) | {tuple([*list(problem_trigger), *(list(val)[0])])}
+        if val != {(OPTIONAL_BLANKS_ENUM(None),)}:
+            local_new_rules[key] = local_new_rules.get(key, set()) | {tuple([*list(problem_trigger), *(list(val)[0])])}
+        else:
+            local_new_rules[key] = local_new_rules.get(key, set()) | {tuple([*list(problem_trigger)])}
 
     new_no_terminals = dict()
     nt_to_names = dict()
@@ -617,6 +642,8 @@ def transform_longer_first_empty_rules(rules: GROUPED_RULES_TYPE) -> GROUPED_RUL
 
 
 ARGS = NO_TERMINALS | ALL_LEXICAL | Type[enum.Enum]
+
+
 def first_f(
         symbol: ARGS,
         rules: GROUPED_RULES_TYPE,
@@ -657,7 +684,7 @@ def first_f(
                 is_calculated_second=is_calculated_second,
             )
     res -= {OPTIONAL_BLANKS_ENUM(None)}
-    is_calculated_first[symbol] =  res
+    is_calculated_first[symbol] = res
     return res
 
 
@@ -677,7 +704,6 @@ def next_f(
     if symbol in is_calculated_second:
         return is_calculated_second[symbol]
     assert symbol != OPTIONAL_BLANKS_ENUM(None)
-
 
     symbol_buf_second.add(symbol)
     res: set[TERMINALS | Type[enum.Enum]] = set()
@@ -700,7 +726,7 @@ def next_f(
                     continue
                 if char == symbol:
                     find = True
-            if find is True and (no_terminal not in symbol_buf_second ):
+            if find is True and (no_terminal not in symbol_buf_second):
                 res |= next_f(
                     no_terminal,
                     rules,
@@ -711,10 +737,6 @@ def next_f(
                 )
     is_calculated_second[symbol] = res
     return res
-
-
-
-
 
 
 if __name__ == '__main__':

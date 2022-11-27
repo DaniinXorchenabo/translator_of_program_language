@@ -77,14 +77,22 @@ class SyntaxAnalyzer(object):
             )
             # next_state.input_action = InputAction.empty
             print(lexeme)
+            print("%%--", next_state)
             while next_state.input_action != InputAction.read:
+                if shop[-1] == OPTIONAL_BLANKS_ENUM(None):
+                    shop.pop(-1)
                 current, next_state = self.get_next_state(lexeme, shop[-1], next_state.state)
                 print(current)
                 print(next_state)
+                print(shop)
                 assert next_state is not None
-                shop.pop(-1)
+                _del = shop.pop(-1)
                 if next_state.shop_action == ShopAction.add:
                     shop.extend(next_state.shop_chain)
+                    if  OPTIONAL_BLANKS_ENUM(None) in shop:
+                        print()
+                        raise ValueError()
+                print("%%--", next_state)
 
     def terminal_eq(self, tested: TERMINALS, terminal_value: TERMINALS | Type[enum.Enum]):
         if isinstance(tested, TERMINALS) is False:
@@ -143,14 +151,15 @@ class SyntaxAnalyzer(object):
         if inspect.isclass(shop_symbol):
             variants = self.grammar_enums_finder_shop_enum[input_char_type][shop_symbol]
         else:
-            if (variants := self.grammar_enums_finder[input_char_type].get(shop_symbol)) is not None:
+            if (variants := self.grammar_enums_finder.get(input_char_type, dict()).get(shop_symbol)) is not None:
                 pass
             else:
-                for shop_enum in set(self.grammar_enums_finder_shop_enum[input_char_type].keys()):
+                for shop_enum in set(self.grammar_enums_finder_shop_enum.get(input_char_type, dict()).keys()):
                     if any(i == shop_symbol for i in shop_enum):
                         variants = shop_enum
                         break
                 else:
+                    print()
                     raise ValueError()
         test_res = [i for i in variants if i.state == current_state]
         if len(test_res) != 1:

@@ -215,6 +215,9 @@ def empty_rules_resolved(
 def deterministic_top_down_parsing_builder(rules_dict: RAW_RULES_TYPE) -> \
         tuple[SHOP_MACHINE_TYPE, Type[NO_TERMINALS], GROUPED_RULES_TYPE]:
     global NO_TERMINALS
+
+
+
     ll1_rules, NO_TERMINALS = grammar_transform(rules_dict)
     ll1_rules: GROUPED_RULES_TYPE
 
@@ -295,7 +298,7 @@ def deterministic_top_down_parsing_builder(rules_dict: RAW_RULES_TYPE) -> \
                 print("***")
                 raise ValueError()
 
-    shop_machine |= empty_rules_resolved(ll1_rules)
+    shop_machine = empty_rules_resolved(ll1_rules) | shop_machine
 
     newer_first_terminals = (terminals | terminal_enums) - first_terminals - set(NO_TERMINALS)
     for terminal in newer_first_terminals:
