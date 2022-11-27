@@ -4,7 +4,7 @@ from typing import Type, Any
 from uuid import uuid4, UUID
 
 from syntax_analyzer.lexical.all_lexems import ALL_LEXICAL
-from syntax_analyzer.lexical.terminals import OPTIONAL_BLANKS_ENUM, BLANKS_ENUM, CHARS_ENUM, NUMERALS_ENUM, UNARY_ENUM, \
+from syntax_analyzer.lexical.terminals import OPTIONAL_BLANKS_ENUM, BLANKS_ENUM, CHARS_ENUM, NUMERALS_ENUM, \
     BINARY_ENUM
 from syntax_analyzer.lexical import no_terminals
 
@@ -71,8 +71,8 @@ D_V_TYPE = dictionary_value_type = list[ALL_LEXICAL | Type[enum.Enum]]
 raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
 
     tM_dict={
-        # (uuid4(), NO_T.tM): [NO_T.tD, O_BL, NO_T.tB],  # , O_BL
-        (uuid4(), NO_T.tM): [NO_T.tD],
+        (uuid4(), NO_T.tM): [NO_T.tD, NO_T.tB],  # , O_BL
+        # (uuid4(), NO_T.tM): [NO_T.tD],
         # (uuid4(), NO_T.tM): [NO_T.tD, NO_T.tR, A.BEGIN],  # , O_BL
 
     },
@@ -111,38 +111,40 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
         (uuid4(), NO_T.tV): [CHARS_ENUM],
         # (uuid4(), NO_T.tV): [NO_T.tV],
     },
-    # tB_dict={
-    #     (uuid4(), NO_T.tB): [A.BEGIN, BL, NO_T.tBr,  A.END],
-    # },
-    # tBr_dict={
-    #     (uuid4(), NO_T.tBr): [A.PASS,  A(';')],
-    #     (uuid4(), NO_T.tBr): [NO_T.tA,  A(';')],
-    #     (uuid4(), NO_T.tBr): [NO_T.tR,  A(';')],
-    #     (uuid4(), NO_T.tBr): [NO_T.tW,  A(';')],
-    #     (uuid4(), NO_T.tBr): [NO_T.tSc,  A(';')],
-    #     # (uuid4(), NO_T.tBr): [NO_T.tA, O_BL, A(';'), O_BL, NO_T.tBr],
-    #     # (uuid4(), NO_T.tBr): [NO_T.tR, O_BL, A(';'), O_BL, NO_T.tBr],
-    #     # (uuid4(), NO_T.tBr): [NO_T.tW, O_BL, A(';'), O_BL, NO_T.tBr],
-    #     # (uuid4(), NO_T.tBr): [NO_T.tSc, O_BL, A(';'), O_BL, NO_T.tBr],
-    #     (uuid4(), NO_T.tBr): [NO_T.tA, A(';'), NO_T.tBr],
-    #     (uuid4(), NO_T.tBr): [NO_T.tR, A(';'), NO_T.tBr],
-    #     (uuid4(), NO_T.tBr): [NO_T.tW, A(';'), NO_T.tBr],
-    #     (uuid4(), NO_T.tBr): [NO_T.tSc,  A(';'), NO_T.tBr],
-    # },
-    # tR_dict={
-    #     # (uuid4(), NO_T.tR): [A.READ, O_BL, A('('), O_BL, NO_T.tDv, O_BL, A(')')],
-    #     (uuid4(), NO_T.tR): [A.READ, A('('), O_BL, NO_T.tDv,  A(')')],
-    #
-    # },
-    # tW_dict={
-    #     # (uuid4(), NO_T.tW): [A.WRITE, O_BL, A('('), O_BL, NO_T.tDv, O_BL, A(')')],
-    #     (uuid4(), NO_T.tW): [A.WRITE, A('('), O_BL, NO_T.tDv, A(')')],
-    #
-    # },
-    # tA_dict={
-    #     # (uuid4(), NO_T.tA): [NO_T.tV, O_BL, A('='), O_BL, NO_T.tE],
-    #     (uuid4(), NO_T.tA): [NO_T.tV, A('='), NO_T.tE],
-    # },
+    tB_dict={
+        (uuid4(), NO_T.tB): [A.BEGIN, BL, NO_T.tBr, A.END],
+    },
+    tBr_dict={
+        (uuid4(), NO_T.tBr): [A.PASS, A(';')],
+        (uuid4(), NO_T.tBr): [NO_T.tA,  A(';')],
+        (uuid4(), NO_T.tBr): [NO_T.tR, A(';')],
+        (uuid4(), NO_T.tBr): [NO_T.tW,  A(';')],
+        # (uuid4(), NO_T.tBr): [NO_T.tSc,  A(';')],
+        # # (uuid4(), NO_T.tBr): [NO_T.tA, O_BL, A(';'), O_BL, NO_T.tBr],
+        # # (uuid4(), NO_T.tBr): [NO_T.tR, O_BL, A(';'), O_BL, NO_T.tBr],
+        # # (uuid4(), NO_T.tBr): [NO_T.tW, O_BL, A(';'), O_BL, NO_T.tBr],
+        # # (uuid4(), NO_T.tBr): [NO_T.tSc, O_BL, A(';'), O_BL, NO_T.tBr],
+        (uuid4(), NO_T.tBr): [NO_T.tA, A(';'), NO_T.tBr],
+        (uuid4(), NO_T.tBr): [NO_T.tR, A(';'), NO_T.tBr],
+        (uuid4(), NO_T.tBr): [NO_T.tW, A(';'), NO_T.tBr],
+        # (uuid4(), NO_T.tBr): [NO_T.tSc,  A(';'), NO_T.tBr],
+    },
+    tR_dict={
+        # (uuid4(), NO_T.tR): [A.READ, O_BL, A('('), O_BL, NO_T.tDv, O_BL, A(')')],
+        (uuid4(), NO_T.tR): [A.READ, A('('), NO_T.tV,  A(')')],
+        # (uuid4(), NO_T.tR): [A.READ, A('('), BL, A(')')],
+
+    },
+    tW_dict={
+        # (uuid4(), NO_T.tW): [A.WRITE, O_BL, A('('), O_BL, NO_T.tDv, O_BL, A(')')],
+        (uuid4(), NO_T.tW): [A.WRITE, A('('), NO_T.tV, A(')')],
+# (uuid4(), NO_T.tW): [A.WRITE, A('('), BL, A(')')],
+
+    },
+    tA_dict={
+        # (uuid4(), NO_T.tA): [NO_T.tV, O_BL, A('='), O_BL, NO_T.tE],
+        (uuid4(), NO_T.tA): [NO_T.tV, A('='), NO_T.tE],
+    },
     # tSc_dict={
     #     (uuid4(), NO_T.tSc): [A.SWITCH, BL, NO_T.tCes, A.END, A(';')],
     # },
@@ -151,36 +153,33 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
     #     # (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr, BL, A.END, O_BL, A(';'), O_BL, NO_T.tCes],
     #     (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr,  A.END, O_BL, A(';'), NO_T.tCes],
     # },
-    # tE_dict={
-    #     # (uuid4(), NO_T.tE): [NO_T.tUo, O_BL, NO_T.tSe],
-    #     (uuid4(), NO_T.tE): [NO_T.tUo, NO_T.tSe],
-    #     (uuid4(), NO_T.tE): [NO_T.tSe],
-    # },
-    # tSe_dict={
-    #     (uuid4(), NO_T.tSe): [A('('),  NO_T.tE, A(')'), NO_T.tZ],
-    #     (uuid4(), NO_T.tSe): [NO_T.tNum, NO_T.tZ],
-    #     # (uuid4(), NO_T.tSe): [NO_T.tSe, O_BL, NO_T.tBo, O_BL, NO_T.tSe],
-    #     # (uuid4(), NO_T.tSe): [NO_T.tSe, NO_T.tBo, NO_T.tSe],
-    #     # (uuid4(), NO_T.tSe): [NO_T.tSe, NO_T.tBo, NO_T.tSe],
-    #
-    # },
+    tE_dict={
+        # (uuid4(), NO_T.tE): [NO_T.tUo, O_BL, NO_T.tSe],
+        (uuid4(), NO_T.tE): [NO_T.tUo, NO_T.tSe],
+        (uuid4(), NO_T.tE): [NO_T.tSe],
+    },
+    tSe_dict={
+        (uuid4(), NO_T.tSe): [A('('), NO_T.tE, A(')')],
+        (uuid4(), NO_T.tSe): [NO_T.tNum],
+        (uuid4(), NO_T.tSe): [NO_T.tSe, NO_T.tBo, NO_T.tSe],
+    },
     #
     # tZ_dict = {
     #     (uuid4(), NO_T.tZ): [O_BL(None)],
     #     (uuid4(), NO_T.tZ): [NO_T.tBo, NO_T.tSe],
     # },
     #
-    # tNum_dict={
-    #     # (uuid4(), NO_T.tNum): [NUMERALS_ENUM, O_BL(None)],
-    #     (uuid4(), NO_T.tNum): [NUMERALS_ENUM, A(':')],
-    #     # (uuid4(), NO_T.tNum): [NUMERALS_ENUM, NO_T.tNum, A(':')],
-    # },
-    # tUo_dict={
-    #     (uuid4(), NO_T.tUo): [UNARY_ENUM],
-    # },
-    # tBo_dict={
-    #     (uuid4(), NO_T.tBo): [BINARY_ENUM],
-    # },
+    tNum_dict={
+        (uuid4(), NO_T.tNum): [NUMERALS_ENUM, NO_T.tNum],
+        (uuid4(), NO_T.tNum): [NUMERALS_ENUM],
+
+    },
+    tUo_dict={
+        (uuid4(), NO_T.tUo): [BINARY_ENUM("-")],
+    },
+    tBo_dict={
+        (uuid4(), NO_T.tBo): [BINARY_ENUM],
+    },
 
 )
 
@@ -204,10 +203,10 @@ old_raw_rule_len = sum(len(v) for v in raw_rules_dict.values())
 # assert all([all(j[1].name == key.removesuffix('_dict') for j in values)
 #             for key, values in raw_rules_dict.items() if (key_num := key)]), \
 #     f'в словаре {key_num} как минимум одно из правил имеет неверную функцию перехода'
-
 raw_rules_dict: dict[tuple[UUID, NO_TERMINALS], list[ALL_LEXICAL]] = {
     key: val for values in raw_rules_dict.values() for key, val in values.items()
 }
+print(*raw_rules_dict.items(), sep='\n')
 START_STATES = {NO_TERMINALS.tM}
 
 if __name__ == '__main__':

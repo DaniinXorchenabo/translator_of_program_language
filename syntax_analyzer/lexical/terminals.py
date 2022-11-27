@@ -58,13 +58,15 @@ terminals = keywords | chars | numerals | unary | binary | blanks | special_char
 KEYWORDS_ENUM = enum.Enum('KEYWORDS_ENUM', {i: i for i in keywords})
 CHARS_ENUM = enum.Enum('CHARS_ENUM', {i: i for i in chars})
 NUMERALS_ENUM = enum.Enum('NUMERALS_ENUM', {i: i for i in numerals})
-UNARY_ENUM = enum.Enum('UNARY_ENUM', {i: i for i in unary})
+# UNARY_ENUM = enum.Enum('UNARY_ENUM', {i: i for i in unary})
 BINARY_ENUM = enum.Enum('BINARY_ENUM', {i: i for i in binary})
 SPECIAL_CHARS_ENUM = enum.Enum('SPECIAL_CHARS_ENUM', {i: i for i in special_chars})
 BLANKS_ENUM = enum.Enum('BLANKS_ENUM', {i: i for i in blanks})
 OPTIONAL_BLANKS_ENUM = enum.Enum('OPTIONAL_BLANKS_ENUM', {i: i for i in list(blanks)} | {'<empty>': None})
 
-terminal_enums = {KEYWORDS_ENUM, CHARS_ENUM, NUMERALS_ENUM, UNARY_ENUM, BINARY_ENUM, SPECIAL_CHARS_ENUM, BLANKS_ENUM}
+terminal_enums = {KEYWORDS_ENUM, CHARS_ENUM, NUMERALS_ENUM,
+                  # UNARY_ENUM,
+                  BINARY_ENUM, SPECIAL_CHARS_ENUM, BLANKS_ENUM}
 
 
 
