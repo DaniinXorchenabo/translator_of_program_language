@@ -34,17 +34,17 @@ def syntax_tree_build(raw_rules: RAW_RULES_TYPE, StartStates: set[NO_TERMINALS])
         for [uuid, no_term], rule in parents.items():
 
             next_no_terms = {i for i in rule if isinstance(i, no_terminals._first_NO_TERMINALS)}
-            print(next_no_terms)
+            # print(next_no_terms)
             next_no_terms -= used
             child |= {(ch_uuid, ch_no_term): ch_rules
                      for (ch_uuid, ch_no_term), ch_rules in raw_rules.items()
                      if ch_no_term in next_no_terms
                      }
-            print(child.keys())
+            # print(child.keys())
             used |= next_no_terms
         parents = child
         tree_level_counter += 1
-    print(*tree.items(), sep='\n')
+    # print(*tree.items(), sep='\n')
     return tree
 
 
@@ -68,7 +68,7 @@ def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE, Start
     resolve_after_loop: list = []
     used = set()
     for min_level, rules in syntax_tree_build(raw_rules, StartStates).items():
-        print('=================================', min_level)
+        # print('=================================', min_level)
         for [uuid, trigger_target], trigger_target_right in rules.items():
             # if trigger_target in used:
             #     continue
@@ -82,7 +82,7 @@ def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE, Start
             next_targets: set[tuple[tuple[NO_TERMINALS, UUID, tuple[ALL_LEXICAL | NO_TERMINALS]]]] = set()
             # Происходит поиск в ширину по графу
             while bool(current_targets):
-                print(*current_targets, sep='\n')
+                # print(*current_targets, sep='\n')
                 for target in current_targets:
                     used.add(target[-1][0])
                     if target[-1][0] == trigger_target and len(target) > 1:
@@ -151,7 +151,7 @@ def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE, Start
     loops = []
     no_loops = []
     for chain in closed_chains:
-        print(chain)
+        # print(chain)
         if len(chain) != 1 and chain[0][0] == chain[-1][0]:
             chain = tuple(((i[0], i[1], tuple(i[2])) if i[2] is not None else i) for i in chain)
             loops.append(chain)
@@ -159,7 +159,7 @@ def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE, Start
             chain = tuple(((i[0], i[1], tuple(i[2])) if i[2] is not None else i) for i in chain)
             no_loops.append(chain)
     loops = set(loops)
-    print()
+    # print()
     # closed_chains: RULES_SET_TYPE = {
     #     tuple([
     #         tuple([(tuple(ii) if isinstance(ii, list) else ii) for ii in j])
@@ -355,9 +355,9 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
     :return:
     """
     global NO_TERMINALS
-    print('^^^', *raw_rules.items(), sep='\n')
+    # print('^^^', *raw_rules.items(), sep='\n')
     middle_rules = raw_rules.copy()
-    print('^^^', *middle_rules.items(), sep='\n')
+    # print('^^^', *middle_rules.items(), sep='\n')
     transform_all_rules = raw_rules.copy()
     will_change, not_change = first_no_terminal_division(middle_rules)
     loop_counter = 0
@@ -396,7 +396,7 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
                 else:
                     new_factorization_rules[(uuid4(), no_terminal)] = rule
 
-        print()
+        # print()
         # assert len(looped) == len(yourself_recursions), "количество циклов должно совпадать " \
         #                                                 "с количеством полученных саморекурсий"
         # print("*******************", len(yourself_recursions))
@@ -444,7 +444,7 @@ def grammar_transform(raw_rules: RAW_RULES_TYPE) -> tuple[RAW_RULES_TYPE, Type[N
         if len(looped) == 0 and len(resolving_after_loop) == 0:
             break
 
-    print('^^^', *middle_rules.items(), sep='\n')
+    # print('^^^', *middle_rules.items(), sep='\n')
 
     _t = [(no_term, rule, uuid) for [uuid, no_term], rule, in middle_rules.items() if
           OPTIONAL_BLANKS_ENUM(None) in rule and len(rule) > 1]
@@ -570,7 +570,7 @@ def group_factorization(
                                                    local_new_rules.items()}
         else:
             local_new_rules[no_terminal] = local_new_rules.get(no_terminal, set()) | {(OPTIONAL_BLANKS_ENUM(None),)}
-            print(key, trigger_name, problem_trigger, val, no_terminal)
+            # print(key, trigger_name, problem_trigger, val, no_terminal)
 
             # raise ValueError("Подумать, что делать, если оно пустое")
 
@@ -586,7 +586,7 @@ def dict_chain(rules: GROUP_TREE_TYPE, aggregate_dict=None, _deep=0) -> GROUPED_
             aggregate_dict |= dict_chain(val, aggregate_dict=aggregate_dict, _deep=_deep + 1)
         else:
             val: set
-            print(key, val)
+            # print(key, val)
             aggregate_dict[key] = aggregate_dict.get(key, set()) | val
     return aggregate_dict
 
@@ -625,7 +625,7 @@ def grammar_factorization(raw_rules: RAW_RULES_TYPE) -> tuple[GROUPED_RULES_TYPE
         else:
             data, old_rules, NO_TERMINALS = group_factorization(key, rules, new_rules, old_rules)
             new_rules |= data
-    print('*' * 20)
+    # print('*' * 20)
     new_rules: GROUPED_RULES_TYPE = dict_chain(new_rules)
 
     return transform_longer_first_empty_rules(new_rules), NO_TERMINALS

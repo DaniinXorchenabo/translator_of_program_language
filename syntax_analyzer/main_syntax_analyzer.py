@@ -51,7 +51,7 @@ class SyntaxAnalyzer(object):
                         self.grammar_predicates_shop_enum.get(key.input_char, dict())
                     self.grammar_predicates_shop_enum[key.input_char][key.shop] = w_dict.get(key.shop, set()) | {val}
                 else:
-                    print(key)
+                    # print(key)
                     self.grammar_predicates_finder[key.input_char] = w_dict = \
                         self.grammar_predicates_finder.get(key.input_char, dict())
                     self.grammar_predicates_finder[key.input_char][key.shop] = w_dict.get(key.shop, set()) | {val}
@@ -76,15 +76,16 @@ class SyntaxAnalyzer(object):
                 next_state.state
             )
             # next_state.input_action = InputAction.empty
-            print(lexeme)
-            print("%%--", next_state)
+            print("\n" + f"{[str(lexeme)]}", end=': - ')
+            # print("%%--", next_state)
             while next_state.input_action != InputAction.read:
                 if shop[-1] == OPTIONAL_BLANKS_ENUM(None):
                     shop.pop(-1)
                 current, next_state = self.get_next_state(lexeme, shop[-1], next_state.state)
-                print(current)
-                print(next_state)
-                print(shop)
+                print(current.shop, end=', ')
+                # print(current)
+                # print(next_state)
+                # print(shop)
                 assert next_state is not None
                 _del = shop.pop(-1)
                 if next_state.shop_action == ShopAction.add:
@@ -92,7 +93,7 @@ class SyntaxAnalyzer(object):
                     if  OPTIONAL_BLANKS_ENUM(None) in shop:
                         print()
                         raise ValueError()
-                print("%%--", next_state)
+                # print("%%--", next_state)
 
     def terminal_eq(self, tested: TERMINALS, terminal_value: TERMINALS | Type[enum.Enum]):
         if isinstance(tested, TERMINALS) is False:

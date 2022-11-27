@@ -208,7 +208,7 @@ old_raw_rule_len = sum(len(v) for v in raw_rules_dict.values())
 raw_rules_dict: dict[tuple[UUID, NO_TERMINALS], list[ALL_LEXICAL]] = {
     key: val for values in raw_rules_dict.values() for key, val in values.items()
 }
-print(*raw_rules_dict.items(), sep='\n')
+# print(*raw_rules_dict.items(), sep='\n')
 START_STATES = {NO_TERMINALS.tM}
 
 if __name__ == '__main__':

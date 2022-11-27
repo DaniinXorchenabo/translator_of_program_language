@@ -157,7 +157,7 @@ def other_next_f(
                             is_calculated_first=is_calculated_first,
                             is_calculated_second=is_calculated_second,
                         )
-                        print()
+                        # print()
                     res |= _res
                         # _res |= other_next_f(char, rules)
                     assert OPTIONAL_BLANKS_ENUM(None) not in res
@@ -251,8 +251,8 @@ def deterministic_top_down_parsing_builder(rules_dict: RAW_RULES_TYPE) -> \
     }
 
     newer_first_terminals = (terminals | terminal_enums) - newer_first_terminals
-    print('&-------------')
-    print(newer_first_terminals)
+    # print('&-------------')
+    # print(newer_first_terminals)
 
     shop_machine: SHOP_MACHINE_TYPE = dict()
     first_terminals = set()
@@ -263,7 +263,7 @@ def deterministic_top_down_parsing_builder(rules_dict: RAW_RULES_TYPE) -> \
             else:
                 first_terminals |= {shop_chain[0], shop_chain[0].__class__}
 
-            print(f"{str(no_terminal.name).ljust(50)} {str(shop_chain[0]).ljust(25)} {shop_chain}")
+            # print(f"{str(no_terminal.name).ljust(50)} {str(shop_chain[0]).ljust(25)} {shop_chain}")
             if isinstance(shop_chain[0], no_terminals._first_NO_TERMINALS):
                 for item in first_f_dict[shop_chain[0]]:
                     terminal = TERMINALS[item.name] if hasattr(item, 'name') else item
@@ -286,8 +286,8 @@ def deterministic_top_down_parsing_builder(rules_dict: RAW_RULES_TYPE) -> \
                     pass
             elif (hasattr(shop_chain[0], "name") and shop_chain[0].name in terminals) \
                     or (inspect.isclass(shop_chain[0]) and issubclass(shop_chain[0], enum.Enum)):
-                if inspect.isclass(shop_chain[0]):
-                    print("^^")
+                # if inspect.isclass(shop_chain[0]):
+                    # print("^^")
                 terminal = TERMINALS[shop_chain[0].name] if hasattr(shop_chain[0], 'name') else shop_chain[0]
                 shop_machine[Delta(terminal, no_terminal)] = DeltaDisplay(
                     InputAction.read,
