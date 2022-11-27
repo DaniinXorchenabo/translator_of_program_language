@@ -71,7 +71,7 @@ D_V_TYPE = dictionary_value_type = list[ALL_LEXICAL | Type[enum.Enum]]
 raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
 
     tM_dict={
-        (uuid4(), NO_T.tM): [NO_T.tD, NO_T.tB],  # , O_BL
+        (uuid4(), NO_T.tM): [NO_T.tD, O_BL, NO_T.tB],  # , O_BL
         # (uuid4(), NO_T.tM): [NO_T.tD],
         # (uuid4(), NO_T.tM): [NO_T.tD, NO_T.tR, A.BEGIN],  # , O_BL
 
@@ -115,53 +115,53 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
         (uuid4(), NO_T.tB): [A.BEGIN, BL, NO_T.tBr, A.END],
     },
     tBr_dict={
-        (uuid4(), NO_T.tBr): [A.PASS, A(';')],
-        (uuid4(), NO_T.tBr): [NO_T.tA,  A(';')],
-        (uuid4(), NO_T.tBr): [NO_T.tR, A(';')],
-        (uuid4(), NO_T.tBr): [NO_T.tW,  A(';')],
-        # (uuid4(), NO_T.tBr): [NO_T.tSc,  A(';')],
+        (uuid4(), NO_T.tBr): [A.PASS, O_BL, A(';'), O_BL, ],
+        (uuid4(), NO_T.tBr): [NO_T.tA, O_BL, A(';'), O_BL, ],
+        (uuid4(), NO_T.tBr): [NO_T.tR,O_BL, A(';'), O_BL, ],
+        (uuid4(), NO_T.tBr): [NO_T.tW, O_BL, A(';'), O_BL, ],
+        (uuid4(), NO_T.tBr): [NO_T.tSc,O_BL,  A(';'), O_BL, ],
         # # (uuid4(), NO_T.tBr): [NO_T.tA, O_BL, A(';'), O_BL, NO_T.tBr],
         # # (uuid4(), NO_T.tBr): [NO_T.tR, O_BL, A(';'), O_BL, NO_T.tBr],
         # # (uuid4(), NO_T.tBr): [NO_T.tW, O_BL, A(';'), O_BL, NO_T.tBr],
         # # (uuid4(), NO_T.tBr): [NO_T.tSc, O_BL, A(';'), O_BL, NO_T.tBr],
-        (uuid4(), NO_T.tBr): [NO_T.tA, A(';'), NO_T.tBr],
-        (uuid4(), NO_T.tBr): [NO_T.tR, A(';'), NO_T.tBr],
-        (uuid4(), NO_T.tBr): [NO_T.tW, A(';'), NO_T.tBr],
-        # (uuid4(), NO_T.tBr): [NO_T.tSc,  A(';'), NO_T.tBr],
+        (uuid4(), NO_T.tBr): [NO_T.tA,O_BL, A(';'),O_BL, NO_T.tBr],
+        (uuid4(), NO_T.tBr): [NO_T.tR,O_BL, A(';'),O_BL, NO_T.tBr],
+        (uuid4(), NO_T.tBr): [NO_T.tW, O_BL,A(';'),O_BL, NO_T.tBr],
+        (uuid4(), NO_T.tBr): [NO_T.tSc, O_BL, A(';'),O_BL, NO_T.tBr],
     },
     tR_dict={
         # (uuid4(), NO_T.tR): [A.READ, O_BL, A('('), O_BL, NO_T.tDv, O_BL, A(')')],
-        (uuid4(), NO_T.tR): [A.READ, A('('), NO_T.tV,  A(')')],
+        (uuid4(), NO_T.tR): [A.READ, O_BL,A('('), O_BL,NO_T.tV, O_BL, A(')')],
         # (uuid4(), NO_T.tR): [A.READ, A('('), BL, A(')')],
 
     },
     tW_dict={
         # (uuid4(), NO_T.tW): [A.WRITE, O_BL, A('('), O_BL, NO_T.tDv, O_BL, A(')')],
-        (uuid4(), NO_T.tW): [A.WRITE, A('('), NO_T.tV, A(')')],
+        (uuid4(), NO_T.tW): [A.WRITE,O_BL, A('('), O_BL,NO_T.tV,O_BL, A(')')],
 # (uuid4(), NO_T.tW): [A.WRITE, A('('), BL, A(')')],
 
     },
     tA_dict={
         # (uuid4(), NO_T.tA): [NO_T.tV, O_BL, A('='), O_BL, NO_T.tE],
-        (uuid4(), NO_T.tA): [NO_T.tV, A('='), NO_T.tE],
+        (uuid4(), NO_T.tA): [NO_T.tV, O_BL, A('='), O_BL, NO_T.tE],
     },
-    # tSc_dict={
-    #     (uuid4(), NO_T.tSc): [A.SWITCH, BL, NO_T.tCes, A.END, A(';')],
-    # },
-    # tCes_dict={
-    #     (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr,  A.END, O_BL, A(';')],
-    #     # (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr, BL, A.END, O_BL, A(';'), O_BL, NO_T.tCes],
-    #     (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr,  A.END, O_BL, A(';'), NO_T.tCes],
-    # },
+    tSc_dict={
+        (uuid4(), NO_T.tSc): [A.SWITCH, BL,  NO_T.tE, BL, NO_T.tCes,   A.END],
+    },
+    tCes_dict={
+        (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr,  A.END,  A(';'), O_BL,],
+        # (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr, BL, A.END, O_BL, A(';'), O_BL, NO_T.tCes],
+        (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr,   A.END, A(';'), O_BL,  NO_T.tCes],
+    },
     tE_dict={
         # (uuid4(), NO_T.tE): [NO_T.tUo, O_BL, NO_T.tSe],
-        (uuid4(), NO_T.tE): [NO_T.tUo, NO_T.tSe],
+        (uuid4(), NO_T.tE): [NO_T.tUo, O_BL, NO_T.tSe],
         (uuid4(), NO_T.tE): [NO_T.tSe],
     },
     tSe_dict={
-        (uuid4(), NO_T.tSe): [A('('), NO_T.tE, A(')')],
+        (uuid4(), NO_T.tSe): [A('('), O_BL, NO_T.tE, O_BL, A(')')],
         (uuid4(), NO_T.tSe): [NO_T.tNum],
-        (uuid4(), NO_T.tSe): [NO_T.tSe, NO_T.tBo, NO_T.tSe],
+        (uuid4(), NO_T.tSe): [NO_T.tSe,  NO_T.tBo, O_BL, NO_T.tSe],
     },
     #
     # tZ_dict = {
