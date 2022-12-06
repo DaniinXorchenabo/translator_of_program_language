@@ -68,8 +68,6 @@ terminal_enums = {KEYWORDS_ENUM, CHARS_ENUM, NUMERALS_ENUM,
                   # UNARY_ENUM,
                   BINARY_ENUM, SPECIAL_CHARS_ENUM, BLANKS_ENUM}
 
-
-
 for enum_cls in terminal_enums:
     enum_cls.__eq__ = eq_enum_decorator(enum_cls.__eq__)
     enum_cls.__ne__ = ne_enum_decorator(enum_cls.__ne__)

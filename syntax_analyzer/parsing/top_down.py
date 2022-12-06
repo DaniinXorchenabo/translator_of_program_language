@@ -59,7 +59,8 @@ class DeltaDisplay(object):
             self.input_action.name
             + self.shop_action.name
             + str(self.shop_chain
-                  and ''.join((str(i.name) + str(i.value) if hasattr(i, 'name') else i.__name__) for i in self.shop_chain))
+                  and ''.join(
+                (str(i.name) + str(i.value) if hasattr(i, 'name') else i.__name__) for i in self.shop_chain))
             + self.state.name
 
         )
@@ -67,8 +68,9 @@ class DeltaDisplay(object):
 
 SHOP_MACHINE_TYPE = dict[Delta, DeltaDisplay]
 
-
 ARGS = NO_TERMINALS | ALL_LEXICAL | Type[enum.Enum]
+
+
 def other_first_f(
         symbol: ARGS,
         rules: GROUPED_RULES_TYPE,
@@ -109,7 +111,7 @@ def other_first_f(
                 is_calculated_second=is_calculated_second,
             )
     # res -= {OPTIONAL_BLANKS_ENUM(None)}
-    is_calculated_first[symbol] =  res
+    is_calculated_first[symbol] = res
     return res
 
 
@@ -130,7 +132,6 @@ def other_next_f(
         return is_calculated_second[symbol]
     assert symbol != OPTIONAL_BLANKS_ENUM(None)
 
-
     symbol_buf_second.add(symbol)
     res: set[TERMINALS | Type[enum.Enum]] = set()
     for no_terminal, right_parts in rules.items():
@@ -147,7 +148,7 @@ def other_next_f(
                         is_calculated_first=is_calculated_first,
                         is_calculated_second=is_calculated_second,
                     )
-                    if OPTIONAL_BLANKS_ENUM(None) in _res :
+                    if OPTIONAL_BLANKS_ENUM(None) in _res:
                         _res -= {OPTIONAL_BLANKS_ENUM(None)}
                         _res |= other_next_f(
                             char,
@@ -159,13 +160,13 @@ def other_next_f(
                         )
                         # print()
                     res |= _res
-                        # _res |= other_next_f(char, rules)
+                    # _res |= other_next_f(char, rules)
                     assert OPTIONAL_BLANKS_ENUM(None) not in res
                 elif find is True and char == OPTIONAL_BLANKS_ENUM(None):
                     continue
                 if char == symbol:
                     find = True
-            if find is True and (no_terminal not in symbol_buf_second ):
+            if find is True and (no_terminal not in symbol_buf_second):
                 res |= other_next_f(
                     no_terminal,
                     rules,
@@ -176,8 +177,6 @@ def other_next_f(
                 )
     is_calculated_second[symbol] = res
     return res
-
-
 
 
 def empty_rules_resolved(
@@ -199,7 +198,7 @@ def empty_rules_resolved(
         for no_term, rule in with_empty.copy():
             resolved_terminals = other_next_f(no_term, grouped_rules_copy)
             # while OPTIONAL_BLANKS_ENUM(None) in resolved_terminals:
-                # resolved_terminals |=
+            # resolved_terminals |=
             if OPTIONAL_BLANKS_ENUM(None) not in resolved_terminals:
                 for item in resolved_terminals:
                     terminal = TERMINALS[item.name] if hasattr(item, 'name') else item
@@ -212,11 +211,10 @@ def empty_rules_resolved(
 
     return shop_machine
 
+
 def deterministic_top_down_parsing_builder(rules_dict: RAW_RULES_TYPE) -> \
         tuple[SHOP_MACHINE_TYPE, Type[NO_TERMINALS], GROUPED_RULES_TYPE]:
     global NO_TERMINALS
-
-
 
     ll1_rules, NO_TERMINALS = grammar_transform(rules_dict)
     ll1_rules: GROUPED_RULES_TYPE
@@ -287,7 +285,7 @@ def deterministic_top_down_parsing_builder(rules_dict: RAW_RULES_TYPE) -> \
             elif (hasattr(shop_chain[0], "name") and shop_chain[0].name in terminals) \
                     or (inspect.isclass(shop_chain[0]) and issubclass(shop_chain[0], enum.Enum)):
                 # if inspect.isclass(shop_chain[0]):
-                    # print("^^")
+                # print("^^")
                 terminal = TERMINALS[shop_chain[0].name] if hasattr(shop_chain[0], 'name') else shop_chain[0]
                 shop_machine[Delta(terminal, no_terminal)] = DeltaDisplay(
                     InputAction.read,

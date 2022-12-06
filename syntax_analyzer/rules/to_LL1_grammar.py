@@ -19,34 +19,31 @@ GROUP_TREE_TYPE = dict[NO_TERMINALS, GROUP_TREE_TYPE | set[tuple[ALL_LEXICAL | N
 GROUPED_RULES_TYPE = dict[NO_TERMINALS, set[tuple[NO_TERMINALS | ALL_LEXICAL | OPTIONAL_BLANKS_ENUM, ...]]]
 
 
-
 def syntax_tree_build(raw_rules: RAW_RULES_TYPE, StartStates: set[NO_TERMINALS]):
     tree: dict[int, RAW_RULES_TYPE] = dict()
     parents: RAW_RULES_TYPE = {
         key: val for key, val in raw_rules.items() if key[1] in StartStates
     }
 
-    used: set[NO_TERMINALS  | ALL_LEXICAL | OPTIONAL_BLANKS_ENUM] = set()
+    used: set[NO_TERMINALS | ALL_LEXICAL | OPTIONAL_BLANKS_ENUM] = set()
     tree_level_counter = 0
     while bool(parents):
         tree[tree_level_counter] = parents
         child: RAW_RULES_TYPE = dict()
         for [uuid, no_term], rule in parents.items():
-
             next_no_terms = {i for i in rule if isinstance(i, no_terminals._first_NO_TERMINALS)}
             # print(next_no_terms)
             next_no_terms -= used
             child |= {(ch_uuid, ch_no_term): ch_rules
-                     for (ch_uuid, ch_no_term), ch_rules in raw_rules.items()
-                     if ch_no_term in next_no_terms
-                     }
+                      for (ch_uuid, ch_no_term), ch_rules in raw_rules.items()
+                      if ch_no_term in next_no_terms
+                      }
             # print(child.keys())
             used |= next_no_terms
         parents = child
         tree_level_counter += 1
     # print(*tree.items(), sep='\n')
     return tree
-
 
 
 def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE, StartStates: set[NO_TERMINALS]) \
@@ -101,12 +98,15 @@ def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE, Start
                         continue
                     else:
                         # смотрим, имеет ли цепочка продолжение
-                        target_variants: set[tuple[tuple[ALL_LEXICAL | NO_TERMINALS, UUID, list[ALL_LEXICAL | NO_TERMINALS]]]] = set()
+                        target_variants: set[
+                            tuple[tuple[ALL_LEXICAL | NO_TERMINALS, UUID, list[ALL_LEXICAL | NO_TERMINALS]]]] = set()
                         for target_variant, rules in (raw_rules | not_change).items():
                             if target_variant[1] == target[-1][0]:
                                 next_target = list([i[:] for i in target])
                                 next_target[-1] = next_target[-1][0], target_variant[0], tuple(rules)
-                                next_target: tuple[tuple[NO_TERMINALS, UUID, tuple[ALL_LEXICAL | NO_TERMINALS]], ...] = tuple(next_target)
+                                next_target: tuple[
+                                    tuple[NO_TERMINALS, UUID, tuple[ALL_LEXICAL | NO_TERMINALS]], ...] = tuple(
+                                    next_target)
                                 # next_target[-1][2] = i[2]
 
                                 target_variants.add((*(next_target), (
@@ -137,7 +137,7 @@ def find_left_loops(raw_rules: RAW_RULES_TYPE, not_change: RAW_RULES_TYPE, Start
                             # TODO: проверить правильность этой строки
                             next_target = [tuple(i) for i in target]
                             # Исправляем некорректные данные, которые были записаны при добавлении.
-                            next_target = (*next_target, (next_target[-1][0], None, None), )
+                            next_target = (*next_target, (next_target[-1][0], None, None),)
                             # next_targets.append(next_target)
                             closed_chains.append(next_target)
 

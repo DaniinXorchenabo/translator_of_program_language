@@ -117,29 +117,29 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
     tBr_dict={
         (uuid4(), NO_T.tBr): [A.PASS, O_BL, A(';'), O_BL, ],
         (uuid4(), NO_T.tBr): [NO_T.tA, O_BL, A(';'), O_BL, ],
-        (uuid4(), NO_T.tBr): [NO_T.tR,O_BL, A(';'), O_BL, ],
+        (uuid4(), NO_T.tBr): [NO_T.tR, O_BL, A(';'), O_BL, ],
         (uuid4(), NO_T.tBr): [NO_T.tW, O_BL, A(';'), O_BL, ],
-        (uuid4(), NO_T.tBr): [NO_T.tSc,O_BL,  A(';'), O_BL, ],
+        (uuid4(), NO_T.tBr): [NO_T.tSc, O_BL, A(';'), O_BL, ],
         # # (uuid4(), NO_T.tBr): [NO_T.tA, O_BL, A(';'), O_BL, NO_T.tBr],
         # # (uuid4(), NO_T.tBr): [NO_T.tR, O_BL, A(';'), O_BL, NO_T.tBr],
         # # (uuid4(), NO_T.tBr): [NO_T.tW, O_BL, A(';'), O_BL, NO_T.tBr],
         # # (uuid4(), NO_T.tBr): [NO_T.tSc, O_BL, A(';'), O_BL, NO_T.tBr],
-        (uuid4(), NO_T.tBr): [NO_T.tA,O_BL, A(';'),O_BL, NO_T.tBr],
-        (uuid4(), NO_T.tBr): [NO_T.tR,O_BL, A(';'),O_BL, NO_T.tBr],
-        (uuid4(), NO_T.tBr): [NO_T.tW, O_BL,A(';'),O_BL, NO_T.tBr],
-        (uuid4(), NO_T.tBr): [NO_T.tSc, O_BL, A(';'),O_BL, NO_T.tBr],
+        (uuid4(), NO_T.tBr): [NO_T.tA, O_BL, A(';'), O_BL, NO_T.tBr],
+        (uuid4(), NO_T.tBr): [NO_T.tR, O_BL, A(';'), O_BL, NO_T.tBr],
+        (uuid4(), NO_T.tBr): [NO_T.tW, O_BL, A(';'), O_BL, NO_T.tBr],
+        (uuid4(), NO_T.tBr): [NO_T.tSc, O_BL, A(';'), O_BL, NO_T.tBr],
     },
     tR_dict={
         # (uuid4(), NO_T.tR): [A.READ, O_BL, A('('), O_BL, NO_T.tDv, O_BL, A(')')],
-        (uuid4(), NO_T.tR): [A.READ, O_BL,A('('), O_BL,NO_T.tV, O_BL, A(')')],
+        (uuid4(), NO_T.tR): [A.READ, O_BL, A('('), O_BL, NO_T.tV, O_BL, A(')')],
         # (uuid4(), NO_T.tR): [A.READ, A('('), BL, A(')')],
 
     },
     tW_dict={
         # (uuid4(), NO_T.tW): [A.WRITE, O_BL, A('('), O_BL, NO_T.tDv, O_BL, A(')')],
         # (uuid4(), NO_T.tW): [A.WRITE,O_BL, A('('), O_BL,NO_T.tV,O_BL, A(')')],
-        (uuid4(), NO_T.tW): [A.WRITE,O_BL, A('('), O_BL,NO_T.tE,O_BL, A(')')],
-# (uuid4(), NO_T.tW): [A.WRITE, A('('), BL, A(')')],
+        (uuid4(), NO_T.tW): [A.WRITE, O_BL, A('('), O_BL, NO_T.tE, O_BL, A(')')],
+        # (uuid4(), NO_T.tW): [A.WRITE, A('('), BL, A(')')],
 
     },
     tA_dict={
@@ -147,12 +147,12 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
         (uuid4(), NO_T.tA): [NO_T.tV, O_BL, A('='), O_BL, NO_T.tE],
     },
     tSc_dict={
-        (uuid4(), NO_T.tSc): [A.SWITCH, BL,  NO_T.tE, BL, NO_T.tCes,   A.END],
+        (uuid4(), NO_T.tSc): [A.SWITCH, BL, NO_T.tE, BL, NO_T.tCes, A.END],
     },
     tCes_dict={
-        (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr,  A.END,  A(';'), O_BL,],
+        (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr, A.END, A(';'), O_BL, ],
         # (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr, BL, A.END, O_BL, A(';'), O_BL, NO_T.tCes],
-        (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr,   A.END, A(';'), O_BL,  NO_T.tCes],
+        (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr, A.END, A(';'), O_BL, NO_T.tCes],
     },
     tE_dict={
         # (uuid4(), NO_T.tE): [NO_T.tUo, O_BL, NO_T.tSe],
@@ -163,7 +163,7 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
         (uuid4(), NO_T.tSe): [A('('), O_BL, NO_T.tE, O_BL, A(')')],
         (uuid4(), NO_T.tSe): [NO_T.tNum],
         (uuid4(), NO_T.tSe): [NO_T.tV],
-        (uuid4(), NO_T.tSe): [NO_T.tSe,  NO_T.tBo, O_BL, NO_T.tSe],
+        (uuid4(), NO_T.tSe): [NO_T.tSe, NO_T.tBo, O_BL, NO_T.tSe],
     },
     #
     # tZ_dict = {

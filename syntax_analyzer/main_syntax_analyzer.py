@@ -19,7 +19,7 @@ class SyntaxAnalyzer(object):
         self._grammar: SHOP_MACHINE_TYPE
         self._grammar, NO_TERMINALS, self.ll1_rules = deterministic_top_down_parsing_builder(raw_rules)
         self.grammar_predicates: SHOP_MACHINE_TYPE = dict()  # input_char - всегда  TERMINALS
-        self.grammar_predicates_finder:  dict[TERMINALS, dict[TERMINALS| NO_TERMINALS, set[DeltaDisplay]] ]= dict()
+        self.grammar_predicates_finder: dict[TERMINALS, dict[TERMINALS | NO_TERMINALS, set[DeltaDisplay]]] = dict()
         # input_char - всегда  TERMINALS ; shop - всегда Type[enum.Enum]
         self.grammar_predicates_shop_enum: dict[TERMINALS, dict[Type[enum.Enum], set[DeltaDisplay]]] = dict()
 
@@ -90,7 +90,7 @@ class SyntaxAnalyzer(object):
                 _del = shop.pop(-1)
                 if next_state.shop_action == ShopAction.add:
                     shop.extend(next_state.shop_chain)
-                    if  OPTIONAL_BLANKS_ENUM(None) in shop:
+                    if OPTIONAL_BLANKS_ENUM(None) in shop:
                         print()
                         raise ValueError()
                 # print("%%--", next_state)
@@ -166,7 +166,6 @@ class SyntaxAnalyzer(object):
         if len(test_res) != 1:
             raise SyntaxError("Ошибка недетерминированности")
         return current, test_res[0]
-
 
 
 if __name__ == '__main__':

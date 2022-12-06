@@ -16,9 +16,6 @@ __all__ = ['ll1_test']
 ARGS = NO_TERMINALS | ALL_LEXICAL | Type[enum.Enum]
 
 
-
-
-
 def ll1_test(raw_rules: RAW_RULES_TYPE):
     global NO_TERMINALS
 
@@ -33,7 +30,7 @@ def ll1_test(raw_rules: RAW_RULES_TYPE):
             res_1[no_terminal][rule] = first_f(no_terminal, testing_rules | {no_terminal: {rule}})
             print('\t', res_1[no_terminal][rule])
 
-    print("-"*20)
+    print("-" * 20)
     correct = True
     for no_terminal, first_symbols in res_1.items():
         # print(no_terminal)
@@ -68,7 +65,7 @@ def ll1_test(raw_rules: RAW_RULES_TYPE):
     print(next_f_dict.keys())
     print(set(first_f_dict.keys()) - set(next_f_dict.keys()))
     print(set(next_f_dict.keys()) - set(first_f_dict.keys()))
-    for no_terminal,  rules in testing_rules.items():
+    for no_terminal, rules in testing_rules.items():
         if any(i[0] == OPTIONAL_BLANKS_ENUM(None) for i in rules):
             if len(first_f_dict[no_terminal] & next_f_dict[no_terminal]) > 0:
                 correct_2 += 1

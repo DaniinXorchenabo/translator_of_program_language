@@ -24,28 +24,30 @@ no_terminals_dict = dict(
     tE='Expression',
     tBo='Binary operator',
     tNum='Number',
-    tZ = 'tZ',
 )
+
 
 def eq_enum_decorator(default_eq):
     def no_terminals_eq(self, item):
         global _first_NO_TERMINALS
-        if _first_NO_TERMINALS and isinstance(item, _first_NO_TERMINALS) :
+        if _first_NO_TERMINALS and isinstance(item, _first_NO_TERMINALS):
             return item.name == self.name and item.value == self.value
         else:
             return default_eq(self, item)
 
     return no_terminals_eq
 
+
 def ne_enum_decorator(default_ne):
     def no_terminals_no_eq(self, item):
         global _first_NO_TERMINALS
-        if _first_NO_TERMINALS and isinstance(item, _first_NO_TERMINALS) :
+        if _first_NO_TERMINALS and isinstance(item, _first_NO_TERMINALS):
             return item.name != self.name or item.value != self.value
         else:
             return default_ne(self, item)
 
     return no_terminals_no_eq
+
 
 def get_no_terminals():
     global _NO_TERMINALS, _first_NO_TERMINALS, no_terminals_dict
@@ -63,7 +65,6 @@ def get_no_terminals():
         NO_TERMINALS.__bases__ = (_first_NO_TERMINALS, enum.Enum)
         NO_TERMINALS = enum.unique(NO_TERMINALS)
         _NO_TERMINALS = NO_TERMINALS
-
 
     def get_clone_unique_id():
         global id_counter

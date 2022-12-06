@@ -17,7 +17,8 @@ def lexical_analyzer(data: str):
                 for item in dictionary
                 if (global_item := item) is not None
         ):
-            if TERMINALS[global_item].name in [i.name for i in BLANKS_ENUM] and last_item.name in [i.name for i in BLANKS_ENUM]:
+            if TERMINALS[global_item].name in [i.name for i in BLANKS_ENUM] and last_item.name in [i.name for i in
+                                                                                                   BLANKS_ENUM]:
                 last_item = TERMINALS[global_item]
                 data = data.removeprefix(global_item)
                 continue
@@ -37,8 +38,8 @@ def pipe_of_blanks(lexical_analyzer: Iterator):
     last_item = OPTIONAL_BLANKS_ENUM(None)
     for item in lexical_analyzer:
         if any(item.name == i.name for i in BLANKS_ENUM) \
-            and any(last_item.name == i.name for en in [NUMERALS_ENUM, CHARS_ENUM, [SPECIAL_CHARS_ENUM(")")]]
-                    for i in en):
+                and any(last_item.name == i.name for en in [NUMERALS_ENUM, CHARS_ENUM, [SPECIAL_CHARS_ENUM(")")]]
+                        for i in en):
             buffer.append(item)
         elif bool(buffer):
             if any(item.name == i.name for i in BINARY_ENUM) is False:
@@ -52,7 +53,6 @@ def pipe_of_blanks(lexical_analyzer: Iterator):
 
 def get_lexical_analyzer(data: str):
     return pipe_of_blanks(lexical_analyzer(data))
-
 
 
 if __name__ == '__main__':
