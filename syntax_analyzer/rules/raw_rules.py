@@ -71,7 +71,7 @@ D_V_TYPE = dictionary_value_type = list[ALL_LEXICAL | Type[enum.Enum]]
 raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
 
     tM_dict={
-        (uuid4(), NO_T.tM): [NO_T.tD, O_BL, NO_T.tB],  # , O_BL
+        (uuid4(), NO_T.tM): [NO_T.tD, O_BL, NO_T.tB, BL],  # , O_BL
         # (uuid4(), NO_T.tM): [NO_T.tD],
         # (uuid4(), NO_T.tM): [NO_T.tD, NO_T.tR, A.BEGIN],  # , O_BL
 
