@@ -56,7 +56,7 @@ class SyntaxAnalyzer(object):
                         self.grammar_predicates_finder.get(key.input_char, dict())
                     self.grammar_predicates_finder[key.input_char][key.shop] = w_dict.get(key.shop, set()) | {val}
 
-    def analyze(self, text: str):
+    def analyze_gen(self, text: str):
         global NO_TERMINALS
         current: Delta
         shop: list = [ShopMarker.shopHO, NO_TERMINALS['tM']]
@@ -76,24 +76,25 @@ class SyntaxAnalyzer(object):
                 next_state.state
             )
             # next_state.input_action = InputAction.empty
-            print("\n" + f"{[str(lexeme)]}", end=': - ')
+            # print("\n" + f"{[str(lexeme)]}", end=': - ')
             # print("%%--", next_state)
             while next_state.input_action != InputAction.read:
                 if shop[-1] == OPTIONAL_BLANKS_ENUM(None):
                     shop.pop(-1)
                 current, next_state = self.get_next_state(lexeme, shop[-1], next_state.state)
-                print(current.shop, end=', ')
-                # print(current)
-                # print(next_state)
-                # print(shop)
                 assert next_state is not None
                 _del = shop.pop(-1)
+                yield (_del if hasattr(_del, 'name') else lexeme)
                 if next_state.shop_action == ShopAction.add:
                     shop.extend(next_state.shop_chain)
                     if OPTIONAL_BLANKS_ENUM(None) in shop:
                         print()
                         raise ValueError()
-                # print("%%--", next_state)
+            else:
+                yield lexeme
+
+    def analyze(self, text: str):
+        return list(self.analyze_gen(text))
 
     def terminal_eq(self, tested: TERMINALS, terminal_value: TERMINALS | Type[enum.Enum]):
         if isinstance(tested, TERMINALS) is False:
@@ -144,11 +145,6 @@ class SyntaxAnalyzer(object):
                 input_char_type: Type[enum.Enum] = input_char
             else:
                 raise ValueError()
-        # if (possible_v := self.grammar_enums_finder.get(input_char)) is not None:
-        #     pass
-        # else:
-        #     possible_v = self.grammar_enums_finder_shop_enum.get(input_char)
-        #     assert possible_v is not None
         if inspect.isclass(shop_symbol):
             variants = self.grammar_enums_finder_shop_enum[input_char_type][shop_symbol]
         else:
@@ -172,4 +168,7 @@ if __name__ == '__main__':
     syntax_analyzer = SyntaxAnalyzer(raw_rules_dict)
     with open("program.txt", "r", encoding='utf-8') as f:
         data = f.read()
-    syntax_analyzer.analyze(data)
+
+    lexems = list(syntax_analyzer.analyze(data))
+    print("------------")
+    print(*lexems, sep='\n')
