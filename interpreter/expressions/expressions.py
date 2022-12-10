@@ -98,6 +98,10 @@ class ExpressionController(object):
                 elif self.current_tree_stack[-1].right is None:
                     self.current_tree_stack[-1].right = paste_bracket_group
                     paste_bracket_group.parent = self.current_tree_stack[-1]
+                elif isinstance(self.current_tree_stack[-1].right, ExprTreeNode) and \
+                        self.current_tree_stack[-1].right.right is None:
+                    self.current_tree_stack[-1].right.right = paste_bracket_group
+                    paste_bracket_group.parent = self.current_tree_stack[-1].right
 
                 else:
                     raise NotImplementedError()
