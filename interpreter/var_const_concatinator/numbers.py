@@ -14,6 +14,9 @@ class NumberBufferItem(BufferItem):
     def done(self):
         return self._done
 
+    def __repr__(self):
+        return super().__repr__()
+
 
 class NumController(object):
     def __init__(self):

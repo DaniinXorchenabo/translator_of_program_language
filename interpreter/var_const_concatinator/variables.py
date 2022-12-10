@@ -32,6 +32,9 @@ class VarBufferItem(BufferItem):
     def done(self):
         return self.action is not None
 
+    def __repr__(self):
+        return super().__repr__()
+
 
 @dataclass
 class ResultVarActionStructure:

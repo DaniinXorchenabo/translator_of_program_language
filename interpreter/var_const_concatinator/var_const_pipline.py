@@ -37,7 +37,9 @@ def var_const_pipline(raw_rules, text: str):
                 yield grammar_buffer.pop(0)
             else:
                 break
-    print('**********************')
+    # print('**********************')
+    if bool(grammar_buffer):
+        raise ValueError()
     yield from grammar_buffer
 
 
