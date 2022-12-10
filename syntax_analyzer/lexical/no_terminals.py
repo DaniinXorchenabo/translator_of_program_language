@@ -1,11 +1,12 @@
 import enum
+from typing import Type
+
 
 __all__ = [
     'get_no_terminals',
     'no_terminals_dict'
 ]
 
-from typing import Type
 
 no_terminals_dict = dict(
     tM='Start_state',
