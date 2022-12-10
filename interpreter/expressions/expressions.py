@@ -76,7 +76,15 @@ class ExpressionController(object):
             elif lexeme.result == ALL_LEXICAL(")"):
                 self.bracket_nested -= 1
                 paste_bracket_group = self.current_tree_stack.pop(-1)
-                raise NotImplementedError()
+                if self.current_tree_stack[-1].left is None:
+                    self.current_tree_stack[-1].left = paste_bracket_group
+                    paste_bracket_group.parent = self.current_tree_stack[-1]
+                elif self.current_tree_stack[-1].right is None:
+                    self.current_tree_stack[-1].right = paste_bracket_group
+                    paste_bracket_group.parent = self.current_tree_stack[-1]
+
+                else:
+                    raise NotImplementedError()
             elif isinstance(lexeme.result, (list, tuple)):
                 if self.current_tree_stack[-1].left is None:
                     self.current_tree_stack[-1].left = ExprTreeList(lexeme.result, self.current_tree_stack[-1])
