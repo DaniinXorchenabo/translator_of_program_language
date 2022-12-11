@@ -33,7 +33,9 @@ class VarBufferItem(BufferItem):
         return self.action is not None
 
     def __repr__(self):
-        return super().__repr__()
+        if isinstance(self.result, (list, tuple)):
+            return f"{self.__class__.__name__}({''.join(str(i.name) for i in self.result)}, {self.action.name})"
+        return f"{self.__class__.__name__}({self.result.name}, {self.action.name})"
 
 
 @dataclass

@@ -54,6 +54,7 @@ class ExpressionController(object):
         if lexeme.result == NO_TERMINALS.tE:
             yield lexeme
             self.expr_continue = True
+            # self.current_tree_stack = []
 
         if self.expr_continue is True \
                 and isinstance(lexeme.result, no_terminals._first_NO_TERMINALS) is False \
@@ -75,7 +76,8 @@ class ExpressionController(object):
             self.expr_continue = False
             if len(self.current_tree_stack) != 1:
                 raise NotImplementedError()
-            calculated_val = self.expression_calc(self.current_tree_stack[0], variables_dict)
+            node_tree = self.delete_empty_nodes(self.current_tree_stack[0])
+            calculated_val = self.expression_calc(node_tree, variables_dict)
             yield calculated_val
             self.current_tree_stack = None
 
@@ -90,8 +92,28 @@ class ExpressionController(object):
                 self.bracket_nested += 1
                 self.current_tree_stack += [ExprTreeNode(None, None)]
             elif lexeme.result == ALL_LEXICAL(")"):
+
+                if len(self.current_tree_stack) == 1:
+                    self.expr_continue = False
+                    if len(self.current_tree_stack) != 1:
+                        raise NotImplementedError()
+                    node_tree = self.delete_empty_nodes(self.current_tree_stack[0])
+
+                    calculated_val = self.expression_calc(node_tree, variables_dict)
+                    yield calculated_val
+                    yield lexeme
+                    self.current_tree_stack = None
+                    return
+
                 self.bracket_nested -= 1
                 paste_bracket_group = self.current_tree_stack.pop(-1)
+
+                # if bool(self.current_tree_stack) is False:
+                #     self.expr_continue = False
+                #     self.current_tree_stack = None
+                #     yield lexeme
+                #     return
+
                 if self.current_tree_stack[-1].left is None:
                     self.current_tree_stack[-1].left = paste_bracket_group
                     paste_bracket_group.parent = self.current_tree_stack[-1]
@@ -219,7 +241,6 @@ class ExpressionController(object):
         else:
             yield lexeme
 
-
     @staticmethod
     def get_value_from_buffer_item(item: BufferItem, variables_dict: dict[VarBufferItem, Any]):
         if isinstance(item, VarBufferItem):
@@ -230,6 +251,113 @@ class ExpressionController(object):
             return item.result
         else:
             raise NotImplementedError()
+
+
+    @staticmethod
+    def change_direction(last_node, current_node, next_node=None):
+        next_node = None
+        is_continue = False
+        if isinstance(current_node, ExprTreeList):
+            next_node = current_node.parent
+        elif last_node is None \
+                or current_node.parent == last_node:
+            next_node = current_node.left
+
+        elif current_node.left == last_node:
+            next_node = current_node.right
+        elif current_node.right == last_node:
+            next_node = current_node.parent
+            last_node = current_node
+            current_node = next_node
+            is_continue = True
+        else:
+            raise ValueError()
+        return last_node, current_node, next_node, is_continue
+
+    @classmethod
+    def delete_empty_nodes(cls, expr_tree: ExprTreeNode):
+        current_node = expr_tree
+        last_node = None
+        next_node = None
+        while current_node is not None:
+
+            last_node, current_node, next_node, is_continue = cls.change_direction(last_node, current_node, next_node)
+            if is_continue:
+                continue
+            if current_node.value is None:
+
+                new_parent = current_node.parent
+
+                if current_node.left is not None and current_node.right is not None:
+                    raise ValueError()
+                elif current_node.left is not None:
+
+                    new_left = current_node.left
+                    if new_parent is None:
+                        pass
+                    elif new_parent.right == current_node:
+                        new_parent.right = current_node.left
+                    else:
+                        new_parent.left = current_node.left
+                    # current_node.parent = new_parent
+                    new_left.parent = new_parent
+
+                    current_node.parent = None
+                    current_node.left = None
+                    current_node.right = None
+                    if current_node == expr_tree:
+                        expr_tree = new_left
+
+                    next_node = new_left
+                elif current_node.right is not None:
+
+                    new_right = current_node.right
+                    if new_parent is None:
+                        pass
+                    elif new_parent.right == current_node:
+                        new_parent.right = current_node.left
+                    else:
+                        new_parent.left = current_node.left
+                    # current_node.parent = new_parent
+                    new_right.parent = new_parent
+
+                    current_node.parent = None
+                    current_node.left = None
+                    current_node.right = None
+
+                    if current_node == expr_tree:
+                        expr_tree = new_right
+
+                    next_node = new_right
+                else:
+                    pass
+            elif isinstance(next_node, ExprTreeNode):
+                # if last_node == current_node.parent or last_node is None:
+                #     last_node = current_node
+                #     current_node = current_node.left
+                # elif last_node.
+                pass
+            elif isinstance(next_node, ExprTreeList):
+                last_node = next_node
+                last_node, current_node, next_node, is_continue = cls.change_direction(last_node, current_node,
+                                                                                       next_node)
+                if is_continue:
+                    continue
+            elif next_node is None:
+                # next_node = current_node
+                pass
+            else:
+                raise NotImplementedError()
+
+            last_node = current_node
+            current_node = next_node
+            next_node = None
+
+        return expr_tree
+
+
+
+
     @classmethod
     def expression_calc(
             cls,
@@ -242,7 +370,11 @@ class ExpressionController(object):
                     and current_node.left is not None:
                 current_node = current_node.left
             elif isinstance(current_node, ExprTreeList):
-                if isinstance(current_node.parent.right, ExprTreeList):
+                if current_node.parent is None:
+                    return CalculatedBufferItem(
+                        result=cls.get_value_from_buffer_item(current_node.value, variables_dict)
+                    )
+                elif isinstance(current_node.parent.right, ExprTreeList):
                     # Вычислить значения
                     left = cls.get_value_from_buffer_item(current_node.value, variables_dict)
                     right = cls.get_value_from_buffer_item(current_node.parent.right.value, variables_dict)
@@ -268,6 +400,11 @@ class ExpressionController(object):
                         grand_parent.right = new_tree_list
 
                     current_node = grand_parent
+                elif current_node.parent.value is None:
+                    # grand_parent = current_node.parent.parent
+                    # if grand_parent is None:
+                    #     return
+                    raise NotImplementedError()
                 elif current_node.parent.right is None:
                     raise NotImplementedError()
                 else:

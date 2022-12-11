@@ -12,9 +12,9 @@ Var = tuple[ALL_LEXICAL, ...]
 VarActionType = tuple[Var, VarActions]
 
 
-def var_const_pipline(raw_rules, text: str):
-    syntax_analyzer = SyntaxAnalyzer(raw_rules)
-    lexemes_iterator = syntax_analyzer.analyze_gen(text)
+def var_const_pipline(syntax_gen):
+    # syntax_analyzer = SyntaxAnalyzer(raw_rules)
+    # lexemes_iterator = syntax_analyzer.analyze_gen(text)
 
     grammar_buffer: list[BufferItem] = []
     var_action_stack: list[VarBufferItem] = []
@@ -23,7 +23,7 @@ def var_const_pipline(raw_rules, text: str):
     num_controller = NumController()
     other_lexemes_controller = OtherChars()
 
-    for lexeme in lexemes_iterator:
+    for lexeme in syntax_gen:
         # print(lexeme)
         grammar_buffer, var_action_stack = var_controller.builder(grammar_buffer, lexeme, var_action_stack)
         var_action_stack = var_controller.action_identifier(var_action_stack, lexeme)
@@ -47,8 +47,9 @@ if __name__ == '__main__':
 
     with open("../program.txt", "r", encoding='utf-8') as f:
         data = f.read()
-
-    res = var_const_pipline(raw_rules_dict, data)
+    syntax_analyzer = SyntaxAnalyzer(raw_rules_dict)
+    syntax_gen = syntax_analyzer.analyze_gen(data)
+    res = var_const_pipline(syntax_gen)
     for i in res:
         print(i, sep='\n')
 
