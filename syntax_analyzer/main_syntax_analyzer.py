@@ -67,6 +67,10 @@ class SyntaxAnalyzer(object):
             States.start
         )
         current: Delta
+
+        last_yield_lexeme = None
+        current_yield_lexeme = None
+
         for lexeme in get_lexical_analyzer(text):
             lexeme: TERMINALS
             next_state = DeltaDisplay(
@@ -84,14 +88,19 @@ class SyntaxAnalyzer(object):
                 current, next_state = self.get_next_state(lexeme, shop[-1], next_state.state)
                 assert next_state is not None
                 _del = shop.pop(-1)
-                yield (_del if hasattr(_del, 'name') else lexeme)
+                current_yield_lexeme = (_del if hasattr(_del, 'name') else lexeme)
+                yield current_yield_lexeme
+                last_yield_lexeme = current_yield_lexeme
                 if next_state.shop_action == ShopAction.add:
                     shop.extend(next_state.shop_chain)
                     if OPTIONAL_BLANKS_ENUM(None) in shop:
                         print()
                         raise ValueError()
             else:
-                yield lexeme
+                current_yield_lexeme = lexeme
+                if last_yield_lexeme != current_yield_lexeme:
+                    yield lexeme
+                last_yield_lexeme = current_yield_lexeme
 
     def analyze(self, text: str):
         return list(self.analyze_gen(text))

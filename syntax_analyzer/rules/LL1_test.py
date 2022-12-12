@@ -20,8 +20,8 @@ def ll1_test(raw_rules: RAW_RULES_TYPE):
     global NO_TERMINALS
 
     testing_rules, NO_TERMINALS = grammar_transform(raw_rules)
-    print(testing_rules)
-    print('LL1 test start')
+    # print(testing_rules)
+    # print('LL1 test start')
     res_1 = dict()
     for no_terminal, rules in testing_rules.items():
         print(no_terminal)

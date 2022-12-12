@@ -34,13 +34,19 @@ def var_const_pipline(syntax_gen):
         for _ in range(len(grammar_buffer)):
             if grammar_buffer[0].done():
                 # print("^^---=")
-                yield grammar_buffer.pop(0)
+                res = yield grammar_buffer.pop(0)
+                if res is not None:
+                    yield syntax_gen.send(res)
+
             else:
                 break
     # print('**********************')
     if bool(grammar_buffer):
         raise ValueError()
-    yield from grammar_buffer
+    for i in grammar_buffer:
+        res = yield i
+        if res is not None:
+            yield syntax_gen.send(res)
 
 
 if __name__ == '__main__':
