@@ -143,7 +143,7 @@ class ExpressionController(object):
                         value=NumberBufferItem(
                             result=(ALL_LEXICAL("0"),), _done=True
                         ),
-                        parent=self.current_tree_stack[-1].left
+                        parent=self.current_tree_stack[-1]
                     )
                     self.current_tree_stack[-1].value = lexeme
                     self.current_tree_stack[-1].priority = self.bracket_nested * 3 + 0
@@ -251,7 +251,6 @@ class ExpressionController(object):
             return item.result
         else:
             raise NotImplementedError()
-
 
     @staticmethod
     def change_direction(last_node, current_node, next_node=None):
