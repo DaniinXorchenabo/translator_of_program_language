@@ -244,7 +244,14 @@ class ExpressionController(object):
     @staticmethod
     def get_value_from_buffer_item(item: BufferItem, variables_dict: dict[VarBufferItem, Any]):
         if isinstance(item, VarBufferItem):
-            return variables_dict[item.result]
+            if item.result in variables_dict:
+                if variables_dict[item.result] is None:
+                    raise ValueError(f"Переменная {''.join([i.name for i in item.result])} "
+                                     f"не была инициализированная")
+                return variables_dict[item.result]
+            else:
+                raise ValueError(f"Переменная {''.join([i.name for i in item.result])} "
+                                 f"не определена")
         elif isinstance(item, NumberBufferItem):
             return int("".join([i.name for i in item.result]))
         elif isinstance(item, CalculatedBufferItem):

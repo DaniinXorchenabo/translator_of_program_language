@@ -20,18 +20,29 @@ def ll1_test(raw_rules: RAW_RULES_TYPE):
     global NO_TERMINALS
 
     testing_rules, NO_TERMINALS = grammar_transform(raw_rules)
+
+    # ddd = dict()
+    # [[] for [_, key], val in testing_rules.items()]
+
     # print(testing_rules)
     # print('LL1 test start')
     res_1 = dict()
     for no_terminal, rules in testing_rules.items():
-        print(no_terminal)
+        # print()
+        # print(no_terminal, end='\t')
         res_1[no_terminal] = dict()
         for rule in rules:
             res_1[no_terminal][rule] = first_f(no_terminal, testing_rules | {no_terminal: {rule}})
-            print('\t', res_1[no_terminal][rule])
+            print(no_terminal, end='\t')
+            print((
 
+                "[ " + ' '.join((i.name if hasattr(i, 'name') else i.__name__) for i in res_1[no_terminal][rule] ) + " ]"
+
+                if bool(res_1[no_terminal][rule]) else "∅"), end='\n')
+    print()
     print("-" * 20)
     correct = True
+    printed = set()
     for no_terminal, first_symbols in res_1.items():
         # print(no_terminal)
         if len(first_symbols) > 1:
@@ -43,6 +54,14 @@ def ll1_test(raw_rules: RAW_RULES_TYPE):
                         correct = False
                         print(no_terminal, f"{item1} & {item2} =  {item1 & item2}")
                         print(no_terminal, f"ПЕРВ({rule1}) & ПЕРВ({rule2}) = {item1 & item2} not empty!")
+                    else:
+                        if no_terminal not in printed:
+                            printed.add(no_terminal)
+                            print(
+                                no_terminal,
+                                "{ " + ', '.join({(i.name if hasattr(i, 'name') else i.__name__) for i in item1}) + " }",
+                                "{ " + ', '.join({(i.name if hasattr(i, 'name') else i.__name__) for i in item2})+ " }",
+                                "∅", sep='\t')
     assert correct is True, "Грамматика не может быть LL1 по первому правилу"
     print("Грамматика удовлетворяет первому правилу LL1")
     first_f_dict = dict()
@@ -65,6 +84,10 @@ def ll1_test(raw_rules: RAW_RULES_TYPE):
     print(next_f_dict.keys())
     print(set(first_f_dict.keys()) - set(next_f_dict.keys()))
     print(set(next_f_dict.keys()) - set(first_f_dict.keys()))
+
+    print()
+    print("-" * 20)
+
     for no_terminal, rules in testing_rules.items():
         if any(i[0] == OPTIONAL_BLANKS_ENUM(None) for i in rules):
             if len(first_f_dict[no_terminal] & next_f_dict[no_terminal]) > 0:
@@ -74,6 +97,26 @@ def ll1_test(raw_rules: RAW_RULES_TYPE):
                       f"СЛЕД({no_terminal}) = {next_f_dict[no_terminal]}",
                       f"ПЕРВ() & СЛЕД() = {first_f_dict[no_terminal] & next_f_dict[no_terminal]}",
                       sep='\n\t')
+            else:
+                # ("[ " + ' '.join(
+                #         (i.name if hasattr(i, 'name') else i.__name__) for i in   ) + " ]"
+                #     if bool(  ) else "∅")
+                print(
+                    no_terminal,
+                    ("{ " + ' '.join(
+                        (i.name if hasattr(i, 'name') else i.__name__) for i in first_f_dict[no_terminal]) + " }"
+                     if bool(first_f_dict[no_terminal]) else "∅"),
+                    ("{ " + ' '.join(
+                        (i.name if hasattr(i, 'name') else i.__name__) for i in next_f_dict[no_terminal]) + " }"
+                     if bool(next_f_dict[no_terminal]) else "∅"),
+                    ("{ " + ' '.join(
+                        (i.name if hasattr(i, 'name') else i.__name__) for i in first_f_dict[no_terminal] & next_f_dict[no_terminal]) + " }"
+                     if bool(first_f_dict[no_terminal] & next_f_dict[no_terminal]) else "∅"),
+                    # first_f_dict[no_terminal],
+                    # next_f_dict[no_terminal],
+                    # first_f_dict[no_terminal] & next_f_dict[no_terminal],
+                    sep='\t'
+                )
 
     assert correct_2 == 0, f"Грамматика не LL1 по второму правилу. Обнаружено {correct_2} конфликтов"
     print("Грамматика удовлетворяет второму правилу LL1")

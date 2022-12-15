@@ -118,6 +118,7 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
         (uuid4(), NO_T.tCes): [A.CASE, BL, NO_T.tE, BL, A.OF, BL, NO_T.tBr, A.END, A(';'), O_BL, NO_T.tCes],
     },
     tE_dict={
+        # (uuid4(), NO_T.tE): [NO_T.tUo, NO_T.tSe],
         (uuid4(), NO_T.tE): [NO_T.tUo, O_BL, NO_T.tSe],
         (uuid4(), NO_T.tE): [NO_T.tSe],
     },
@@ -127,6 +128,12 @@ raw_rules_dict: dict[str, dict[tuple[UUID, NO_TERMINALS], D_V_TYPE]] = dict(
         (uuid4(), NO_T.tSe): [NO_T.tV],
         (uuid4(), NO_T.tSe): [NO_T.tSe, NO_T.tBo, O_BL, NO_T.tSe],
     },
+    # tSe_dict={
+    #     (uuid4(), NO_T.tSe): [A('('), NO_T.tE,  A(')')],
+    #     (uuid4(), NO_T.tSe): [NO_T.tNum],
+    #     (uuid4(), NO_T.tSe): [NO_T.tV],
+    #     (uuid4(), NO_T.tSe): [NO_T.tSe, NO_T.tBo,  NO_T.tSe],
+    # },
     tNum_dict={
         (uuid4(), NO_T.tNum): [NUMERALS_ENUM, NO_T.tNum],
         (uuid4(), NO_T.tNum): [NUMERALS_ENUM],

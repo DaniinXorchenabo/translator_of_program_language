@@ -47,7 +47,10 @@ class VarController(object):
         if current_item.result == ALL_LEXICAL("="):
             self.await_value = True
         elif self.await_value and isinstance(current_item, CalculatedBufferItem):
-            variables_dict[self.initing_var] = current_item.result
+            if self.initing_var in variables_dict:
+                variables_dict[self.initing_var] = current_item.result
+            else:
+                raise ValueError(f"Переменная {''.join([i.name for i in self.initing_var])} не определена")
             self.await_value = False
             self.initing_var = None
         return variables_dict
