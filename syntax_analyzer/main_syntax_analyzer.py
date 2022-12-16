@@ -2,7 +2,7 @@ import enum
 import inspect
 from typing import Type
 
-from syntax_analyzer.lexical.lexical_analyzer import get_lexical_analyzer
+from lexical_analyzer.main import get_lexical_analyzer
 from syntax_analyzer.lexical import no_terminals
 from syntax_analyzer.lexical.terminals import TERMINALS, OPTIONAL_BLANKS_ENUM
 from syntax_analyzer.parsing.top_down import deterministic_top_down_parsing_builder, States, ShopMarker, InputAction, \
